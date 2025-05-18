@@ -60,7 +60,10 @@ where
         .build()
 }
 
-fn add_evidence(mut evp: EvidencePackage, all_case_evidence: Vec<Vec<Evidence>>) -> evidenceangel::Result<()> {
+fn add_evidence(
+    mut evp: EvidencePackage,
+    all_case_evidence: Vec<Vec<Evidence>>,
+) -> evidenceangel::Result<()> {
     for evidence in all_case_evidence {
         let tc = evp.create_test_case("TestAngel Test Case")?;
         let tc_evidence = tc.evidence_mut();

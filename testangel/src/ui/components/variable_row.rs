@@ -183,7 +183,9 @@ where
     ) -> Self {
         let mut potential_sources = FactoryVecDeque::builder()
             .launch(gtk::Box::default())
-            .forward(sender.input_sender(), |v| VariableRowInput::SourceSelected(v, true));
+            .forward(sender.input_sender(), |v| {
+                VariableRowInput::SourceSelected(v, true)
+            });
         {
             // populate sources
             let mut potential_sources = potential_sources.guard();
@@ -239,9 +241,13 @@ where
                 }
 
                 if !new_source.is_from_data_spreadsheet() {
-                    widgets.data_column.block_signal(&widgets.data_column_changed);
+                    widgets
+                        .data_column
+                        .block_signal(&widgets.data_column_changed);
                     widgets.data_column.set_text("");
-                    widgets.data_column.unblock_signal(&widgets.data_column_changed);
+                    widgets
+                        .data_column
+                        .unblock_signal(&widgets.data_column_changed);
                 }
 
                 sender
