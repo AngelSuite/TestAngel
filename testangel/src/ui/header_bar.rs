@@ -123,21 +123,21 @@ impl Component for HeaderBarModel {
     ) -> ComponentParts<Self> {
         let sender_c = sender.clone();
         let new_action: RelmAction<FileNewAction> = RelmAction::new_stateless(move |_| {
-            // unwrap rationale: receiver will never be disconnected
+            // SAFETY: receiver will never be disconnected
             sender_c.input(HeaderBarInput::NewFile);
         });
         relm4::main_application().set_accelerators_for_action::<FileNewAction>(&["<primary>N"]);
 
         let sender_c = sender.clone();
         let open_action: RelmAction<FileOpenAction> = RelmAction::new_stateless(move |_| {
-            // unwrap rationale: receiver will never be disconnected
+            // SAFETY: receiver will never be disconnected
             sender_c.input(HeaderBarInput::OpenFile);
         });
         relm4::main_application().set_accelerators_for_action::<FileOpenAction>(&["<primary>O"]);
 
         let sender_c = sender.clone();
         let save_action: RelmAction<FileSaveAction> = RelmAction::new_stateless(move |_| {
-            // unwrap rationale: receiver will never be disconnected
+            // SAFETY: receiver will never be disconnected
             sender_c.input(HeaderBarInput::SaveFile);
         });
         save_action.set_enabled(false);
@@ -145,7 +145,7 @@ impl Component for HeaderBarModel {
 
         let sender_c = sender.clone();
         let save_as_action: RelmAction<FileSaveAsAction> = RelmAction::new_stateless(move |_| {
-            // unwrap rationale: receiver will never be disconnected
+            // SAFETY: receiver will never be disconnected
             sender_c.input(HeaderBarInput::SaveAsFile);
         });
         save_as_action.set_enabled(false);
@@ -154,7 +154,7 @@ impl Component for HeaderBarModel {
 
         let sender_c = sender.clone();
         let close_action: RelmAction<FileCloseAction> = RelmAction::new_stateless(move |_| {
-            // unwrap rationale: receiver will never be disconnected
+            // SAFETY: receiver will never be disconnected
             sender_c.input(HeaderBarInput::CloseFile);
         });
         close_action.set_enabled(false);

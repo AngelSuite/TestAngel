@@ -31,8 +31,9 @@ impl FactoryComponent for AddStepResult {
     type ParentWidget = gtk::Box;
 
     view! {
-        root = gtk::Button::builder().css_classes(["flat"]).build() {
+        root = gtk::Button {
             set_label: &self.label,
+            add_css_class: "flat",
 
             connect_clicked[sender, id] => move |_| {
                 sender.output(id.clone()).unwrap();

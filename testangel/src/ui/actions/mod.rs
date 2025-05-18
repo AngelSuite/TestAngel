@@ -20,6 +20,7 @@ use super::{file_filters, lang};
 use sourceview5::{self as sourceview, prelude::ViewExt};
 
 mod completion_proposal_list;
+mod completion_provider_descriptors;
 mod completion_provider_engines;
 mod completion_provider_instructions;
 pub mod header;
@@ -464,6 +465,8 @@ impl Component for ActionsModel {
         let provider =
             completion_provider_engines::CompletionProviderEngines::new(model.engine_list.clone());
         completion.add_provider(&provider);
+        let provider = completion_provider_descriptors::CompletionProviderDescriptors::new();
+        completion.add_provider(&provider);
         let provider = completion_provider_instructions::CompletionProviderEngineInstructions::new(
             model.engine_list.clone(),
         );
@@ -569,7 +572,7 @@ impl Component for ActionsModel {
             }
             ActionInputs::SaveAction => {
                 if self.open_action.is_some() {
-                    // unwrap rationale: this cannot be triggered if not attached to a window
+                    // SAFETY: this cannot be triggered if not attached to a window
                     self.ask_where_to_save(
                         sender.input_sender(),
                         &root.toplevel_window().unwrap(),
@@ -580,7 +583,7 @@ impl Component for ActionsModel {
             }
             ActionInputs::SaveAsAction => {
                 if self.open_action.is_some() {
-                    // unwrap rationale: this cannot be triggered if not attached to a window
+                    // SAFETY: this cannot be triggered if not attached to a window
                     self.ask_where_to_save(
                         sender.input_sender(),
                         &root.toplevel_window().unwrap(),
@@ -590,7 +593,7 @@ impl Component for ActionsModel {
                 }
             }
             ActionInputs::SaveActionThen_(then) => {
-                // unwrap rationale: this cannot be triggered if not attached to a window
+                // SAFETY: this cannot be triggered if not attached to a window
                 self.ask_where_to_save(
                     sender.input_sender(),
                     &root.toplevel_window().unwrap(),
@@ -649,7 +652,7 @@ impl Component for ActionsModel {
                     self.new_action(&sender);
                 }
 
-                // unwrap rationale: the header can't ask to add an action that doesn't exist
+                // SAFETY: the header can't ask to add an action that doesn't exist
                 let engine = self
                     .engine_list
                     .get_engine_by_instruction_id(&step_id)

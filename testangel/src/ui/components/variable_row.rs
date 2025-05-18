@@ -48,6 +48,8 @@ pub trait VariableRowParentInput<T, PS> {}
 
 pub trait ParameterSourceTrait {
     fn literal() -> Self;
+    fn data_spreadsheet(column: String) -> Self;
+    fn is_from_data_spreadsheet(&self) -> bool;
 }
 
 impl<PS: PartialEq<PS> + ToString + Clone + Debug, T, I: VariableRowParentInput<T, PS>>
@@ -66,7 +68,7 @@ impl<PS: PartialEq<PS> + ToString + Clone + Debug, T, I: VariableRowParentInput<
 
 #[derive(Debug)]
 pub enum VariableRowInput<PS> {
-    SourceSelected(PS),
+    SourceSelected(PS, bool),
     ChangeValue(ParameterValue),
 }
 
@@ -145,11 +147,28 @@ where
                             set_hscrollbar_policy: gtk::PolicyType::Never,
                             set_min_content_height: 150,
 
-                            #[local_ref]
-                            potential_sources -> gtk::Box {
+                            gtk::Box {
                                 set_spacing: 5,
                                 set_orientation: gtk::Orientation::Vertical,
-                            },
+
+                                gtk::Button {
+                                    set_label: &lang::lookup("source-literal"),
+                                    add_css_class: "flat",
+                                    connect_clicked => VariableRowInput::SourceSelected(PS::literal(), true),
+                                },
+                                #[name = "data_column"]
+                                gtk::Entry {
+                                    set_placeholder_text: Some(&lang::lookup("source-data")),
+                                    connect_changed[sender] => move |entry| {
+                                        sender.input(VariableRowInput::SourceSelected(PS::data_spreadsheet(entry.text().to_string()), false));
+                                    } @data_column_changed,
+                                },
+                                #[local_ref]
+                                potential_sources -> gtk::Box {
+                                    set_spacing: 5,
+                                    set_orientation: gtk::Orientation::Vertical,
+                                },
+                            }
                         }
                     },
                 },
@@ -164,7 +183,9 @@ where
     ) -> Self {
         let mut potential_sources = FactoryVecDeque::builder()
             .launch(gtk::Box::default())
-            .forward(sender.input_sender(), VariableRowInput::SourceSelected);
+            .forward(sender.input_sender(), |v| {
+                VariableRowInput::SourceSelected(v, true)
+            });
         {
             // populate sources
             let mut potential_sources = potential_sources.guard();
@@ -199,7 +220,7 @@ where
         _index: &Self::Index,
         root: Self::Root,
         _returned_widget: &<Self::ParentWidget as relm4::factory::FactoryView>::ReturnedWidget,
-        _sender: FactorySender<Self>,
+        sender: FactorySender<Self>,
     ) -> Self::Widgets {
         let potential_sources = self.potential_sources.widget();
         let widgets = view_output!();
@@ -213,9 +234,21 @@ where
         sender: FactorySender<Self>,
     ) {
         match message {
-            VariableRowInput::SourceSelected(new_source) => {
+            VariableRowInput::SourceSelected(new_source, close) => {
                 self.source = new_source.clone();
-                widgets.popover.popdown();
+                if close {
+                    widgets.popover.popdown();
+                }
+
+                if !new_source.is_from_data_spreadsheet() {
+                    widgets
+                        .data_column
+                        .block_signal(&widgets.data_column_changed);
+                    widgets.data_column.set_text("");
+                    widgets
+                        .data_column
+                        .unblock_signal(&widgets.data_column_changed);
+                }
 
                 sender
                     .output(VariableRowOutput::NewSourceFor(
@@ -255,9 +288,10 @@ impl<PS: Debug + Clone + 'static> FactoryComponent for SourceSearchResult<PS> {
     type ParentWidget = gtk::Box;
 
     view! {
-        root = gtk::Button::builder().css_classes(["flat"]).build() {
+        #[root]
+        gtk::Button {
             set_label: &self.label,
-
+            add_css_class: "flat",
             connect_clicked => SourceSearchResultInput::Select,
         }
     }

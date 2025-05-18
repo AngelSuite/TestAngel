@@ -38,6 +38,7 @@ move-down = Move down
 delete-step = Delete step
 
 source-literal = Literal value
+source-data = From data spreadsheet column
 source-from-step = From Step { $step }: { $name }
 source-from-param = From Parameter: { $param }
 
@@ -47,11 +48,13 @@ filetype-all = All files
 filetype-flow = { app-name } Flow file
 filetype-action = { app-name } Action file
 filetype-evp = Evidence Packages
+filetype-csv = Comma Separated Values
 
 # Flows
 
 flow-header-add = Add step
 flow-header-run = Run flow
+flow-header-run-with-data = Run flow with data
 flow-nothing-open-description = Open a flow or add a step to get started
 
 flow-action-changed = Flow Actions Changed
@@ -75,6 +78,7 @@ flow-save-open-error-missing-action = The action for step { $step } (with intern
 flow-execution-running = Flow running...
 flow-execution-failed = Flow failed.
 flow-execution-failed-message = Flow failed at step { $step }: { $reason }.
+flow-execution-failed-data = The data spreadsheet was invalid: { $reason }.
 flow-execution-save-evidence-anyway = Save Evidence Anyway
 
 flow-step-label = Step { $step }: { $name }

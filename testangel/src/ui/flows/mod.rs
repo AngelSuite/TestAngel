@@ -109,7 +109,9 @@ pub enum FlowInputs {
     /// Move a step from the index to a position offset (param 3) from a new index (param 2).
     MoveStep(DynamicIndex, DynamicIndex, isize),
     /// Start the flow exection
-    RunFlow,
+    RunFlow(Option<PathBuf>),
+    /// Start the flow exection with a data spreadsheet
+    RunFlowWithData,
     /// The [`ActionConfiguration`] has changed for the step indicated by the [`DynamicIndex`].
     /// This does not refresh the UI.
     ConfigUpdate(DynamicIndex, ActionConfiguration),
@@ -366,7 +368,8 @@ impl Component for FlowsModel {
                     header::FlowsHeaderOutput::CloseFlow => {
                         FlowInputs::CloseFlowThen(Box::new(FlowInputs::NoOp))
                     }
-                    header::FlowsHeaderOutput::RunFlow => FlowInputs::RunFlow,
+                    header::FlowsHeaderOutput::RunFlow => FlowInputs::RunFlow(None),
+                    header::FlowsHeaderOutput::RunFlowWithData => FlowInputs::RunFlowWithData,
                     header::FlowsHeaderOutput::AddStep(step) => FlowInputs::AddStep(step),
                 }),
         );
@@ -494,7 +497,7 @@ impl Component for FlowsModel {
                 }
             }
             FlowInputs::ConfigUpdate(step, new_config) => {
-                // unwrap rationale: config updates can't happen if nothing is open
+                // SAFETY: config updates can't happen if nothing is open
                 let flow = self.open_flow.as_mut().unwrap();
                 flow.actions[step.current_index()] = new_config;
                 self.set_needs_saving(true, &sender);
@@ -578,7 +581,7 @@ impl Component for FlowsModel {
             }
             FlowInputs::SaveFlow => {
                 if self.open_flow.is_some() {
-                    // unwrap rationale: this cannot be triggered if not attached to a window
+                    // SAFETY: this cannot be triggered if not attached to a window
                     self.ask_where_to_save(
                         sender.input_sender(),
                         &root.toplevel_window().unwrap(),
@@ -589,7 +592,7 @@ impl Component for FlowsModel {
             }
             FlowInputs::SaveAsFlow => {
                 if self.open_flow.is_some() {
-                    // unwrap rationale: this cannot be triggered if not attached to a window
+                    // SAFETY: this cannot be triggered if not attached to a window
                     self.ask_where_to_save(
                         sender.input_sender(),
                         &root.toplevel_window().unwrap(),
@@ -599,7 +602,7 @@ impl Component for FlowsModel {
                 }
             }
             FlowInputs::SaveFlowThen_(then) => {
-                // unwrap rationale: this cannot be triggered if not attached to a window
+                // SAFETY: this cannot be triggered if not attached to a window
                 self.ask_where_to_save(
                     sender.input_sender(),
                     &root.toplevel_window().unwrap(),
@@ -635,7 +638,7 @@ impl Component for FlowsModel {
                 sender.input(*then);
             }
 
-            FlowInputs::RunFlow => {
+            FlowInputs::RunFlow(spreadsheet_path) => {
                 if let Some(flow) = &self.open_flow {
                     let e_dialog = execution_dialog::ExecutionDialog::builder()
                         .transient_for(root)
@@ -643,6 +646,7 @@ impl Component for FlowsModel {
                             flow: flow.clone(),
                             engine_list: self.engine_list.clone(),
                             action_map: self.action_map.clone(),
+                            spreadsheet_path,
                         });
                     let dialog = e_dialog.widget();
                     dialog.set_modal(true);
@@ -651,14 +655,37 @@ impl Component for FlowsModel {
                 }
             }
 
+            FlowInputs::RunFlowWithData => {
+                let dialog = gtk::FileDialog::builder()
+                    .modal(true)
+                    .title(lang::lookup("header-open"))
+                    .filters(&file_filters::filter_list(&[
+                        file_filters::csvs(),
+                        file_filters::all(),
+                    ]))
+                    .build();
+
+                let sender_c = sender.clone();
+                dialog.open(
+                    None::<&gtk::Window>,
+                    Some(&relm4::gtk::gio::Cancellable::new()),
+                    move |res| {
+                        if let Ok(file) = res {
+                            let path = file.path().unwrap();
+                            sender_c.input(FlowInputs::RunFlow(Some(path)));
+                        }
+                    },
+                );
+            }
+
             FlowInputs::AddStep(step_id) => {
                 if self.open_flow.is_none() {
                     self.new_flow(&sender);
                 }
 
-                // unwrap rationale: we've just guaranteed a flow is open
+                // SAFETY: we've just guaranteed a flow is open
                 let flow = self.open_flow.as_mut().unwrap();
-                // unwrap rationale: the header can't ask to add an action that doesn't exist
+                // SAFETY: the header can't ask to add an action that doesn't exist
                 flow.actions.push(ActionConfiguration::from(
                     self.action_map.get_action_by_id(&step_id).unwrap(),
                 ));
@@ -679,7 +706,7 @@ impl Component for FlowsModel {
                             action: self.action_map.get_action_by_id(&config.action_id).unwrap(), // rationale: we have already checked the actions are here when the file is opened
                         });
                         // add possible outputs to list AFTER processing this step
-                        // unwrap rationale: actions are check to exist prior to opening.
+                        // SAFETY: actions are check to exist prior to opening.
                         for (output_idx, (name, kind)) in self
                             .action_map
                             .get_action_by_id(&config.action_id)

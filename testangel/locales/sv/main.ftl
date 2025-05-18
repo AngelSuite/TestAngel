@@ -38,6 +38,7 @@ move-down = Flytta ned
 delete-step = Ta bort steg
 
 source-literal = Direktvärde
+source-data = Från datablad kolumn
 source-from-step = Från steg { $step }: { $name }
 source-from-param = Från parameter: { $param }
 
@@ -47,11 +48,13 @@ filetype-all = Alla filer
 filetype-flow = { app-name } flödefil
 filetype-action = { app-name } Action file
 filetype-evp = Bevispaket-filer
+filetype-csv = Kommaseparerade värden
 
 # Flows
 
 flow-header-add = Lägg till steg
 flow-header-run = Kör flöde
+flow-header-run-with-data = Kör flöde med data
 flow-nothing-open-description = Öppna en flöde eller lägg till ett steg för att komma igång
 
 flow-action-changed = Åtgärder i flödet har ändrats
@@ -72,6 +75,7 @@ flow-save-open-error-missing-action = Åtgärden för steg { $step } (med intern
 flow-execution-running = Flöde körs...
 flow-execution-failed = Flödet misslyckades.
 flow-execution-failed-message = Flödet misslyckades på steg { $step }: { $reason }.
+flow-execution-failed-data = Databladet har fel: { $reason }.
 flow-execution-save-evidence-anyway = Spara bevis ändå
 
 flow-step-label = Steg { $step }: { $name }
