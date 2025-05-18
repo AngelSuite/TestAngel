@@ -5,13 +5,19 @@ use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 use base64::{Engine, prelude::BASE64_STANDARD};
 use clap::{Parser, arg};
 use evidenceangel::{Author, EvidencePackage};
-use testangel::{action_loader, ipc, types::AutomationFlow};
+use testangel::{
+    action_loader, data_spreadsheet::load_data_spreadsheet, ipc, types::AutomationFlow,
+};
 use testangel_ipc::prelude::*;
 use tracing_subscriber::util::SubscriberInitExt;
 
 #[derive(Parser)]
 
 struct Cli {
+    /// The data spreadsheet (CSV) to refer to for this flow
+    #[arg(short, long)]
+    data_spreadsheet: Option<PathBuf>,
+
     /// The output file for evidence. If this already exists then it will be appended.
     #[arg(short, long, default_value = "evidence.evp")]
     output: PathBuf,
@@ -45,29 +51,11 @@ fn main() {
         }
     }
 
-    let mut outputs: Vec<HashMap<usize, ParameterValue>> = Vec::new();
-    let mut evidence = Vec::new();
-
-    for engine in &**engine_map {
-        if engine.reset_state().is_err() {
-            evidence.push(Evidence {
-                label: String::from("WARNING: State Warning"),
-                content: EvidenceContent::Textual(String::from("For this test execution, the state couldn't be correctly reset. Some results may not be accurate."))
-            });
-        }
-    }
-
-    for action_config in flow.actions {
-        match action_config.execute(&action_map, &engine_map, &outputs) {
-            Ok((output, ev)) => {
-                outputs.push(output);
-                evidence = [evidence, ev].concat();
-            }
-            Err((e, _ev)) => {
-                panic!("Failed to execute: {e}");
-            }
-        }
-    }
+    let spreadsheet_data = if let Some(path) = cli.data_spreadsheet {
+        load_data_spreadsheet(path).expect("Failed to parse data spreadsheet")
+    } else {
+        vec![HashMap::new()]
+    };
 
     match fs::exists(&cli.output) {
         Ok(exists) => {
@@ -86,18 +74,54 @@ fn main() {
             if let Err(e) = &evp {
                 eprintln!("Failed to create/open output file: {e}");
             }
-            let evp = evp.unwrap();
+            let mut evp = evp.unwrap();
 
-            // Append new TC
-            if let Err(e) = add_evidence(evp, evidence) {
-                eprintln!("Failed to write evidence: {e}");
+            for spreadsheet_row in spreadsheet_data {
+                // Append new TC
+                let flow_ev = run_flow(flow.clone(), &engine_map, &action_map, &spreadsheet_row);
+                if let Err(e) = add_evidence(&mut evp, flow_ev) {
+                    eprintln!("Failed to write evidence: {e}");
+                }
             }
         }
         Err(e) => eprintln!("Failed to check if output file exists: {e}"),
     }
 }
 
-fn add_evidence(mut evp: EvidencePackage, evidence: Vec<Evidence>) -> evidenceangel::Result<()> {
+fn run_flow(
+    flow: AutomationFlow,
+    engine_map: &Arc<ipc::EngineList>,
+    action_map: &Arc<action_loader::ActionMap>,
+    spreadsheet_row: &HashMap<String, ParameterValue>,
+) -> Vec<Evidence> {
+    let mut outputs: Vec<HashMap<usize, ParameterValue>> = Vec::new();
+    let mut evidence = Vec::new();
+
+    for engine in &***engine_map {
+        if engine.reset_state().is_err() {
+            evidence.push(Evidence {
+                label: String::from("WARNING: State Warning"),
+                content: EvidenceContent::Textual(String::from("For this test execution, the state couldn't be correctly reset. Some results may not be accurate."))
+            });
+        }
+    }
+
+    for action_config in flow.actions {
+        match action_config.execute(action_map, engine_map, &outputs, spreadsheet_row) {
+            Ok((output, ev)) => {
+                outputs.push(output);
+                evidence = [evidence, ev].concat();
+            }
+            Err((e, _ev)) => {
+                panic!("Failed to execute: {e}");
+            }
+        }
+    }
+
+    evidence
+}
+
+fn add_evidence(evp: &mut EvidencePackage, evidence: Vec<Evidence>) -> evidenceangel::Result<()> {
     let tc = evp.create_test_case("TestAngel Test Case")?;
     let tc_evidence = tc.evidence_mut();
     for ev in evidence {

@@ -58,6 +58,14 @@ impl ParameterSourceTrait for ActionParameterSource {
     fn literal() -> Self {
         Self::Literal
     }
+
+    fn data_spreadsheet(column: String) -> Self {
+        Self::FromSpreadsheetColumn(column)
+    }
+
+    fn is_from_data_spreadsheet(&self) -> bool {
+        matches!(self, Self::FromSpreadsheetColumn(_))
+    }
 }
 
 #[derive(Debug)]
@@ -267,7 +275,7 @@ impl FactoryComponent for ActionComponent {
             // initialise rows
             let mut variable_rows = self.variable_rows.guard();
             for (idx, (name, kind)) in self.action.parameters().iter().enumerate() {
-                let possible_sources = self
+                let potential_sources = self
                     .possible_outputs
                     .iter()
                     .filter(|(_, o_kind, _)| o_kind == kind)
@@ -280,14 +288,7 @@ impl FactoryComponent for ActionComponent {
                     kind: *kind,
                     current_source: self.config.parameter_sources[&idx].clone(),
                     current_value: self.config.parameter_values[&idx].clone(),
-                    potential_sources: [
-                        vec![(
-                            lang::lookup("source-literal"),
-                            ActionParameterSource::Literal,
-                        )],
-                        possible_sources,
-                    ]
-                    .concat(),
+                    potential_sources,
                 });
             }
         }

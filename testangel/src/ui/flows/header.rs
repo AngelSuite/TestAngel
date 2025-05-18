@@ -30,6 +30,7 @@ pub enum FlowsHeaderOutput {
     SaveAsFlow,
     CloseFlow,
     RunFlow,
+    RunFlowWithData,
     AddStep(String),
 }
 
@@ -108,8 +109,18 @@ impl Component for FlowsHeader {
                 #[watch]
                 set_sensitive: model.flow_open,
                 connect_clicked[sender] => move |_| {
-                    // unwrap rationale: receivers will never be dropped
+                    // SAFETY: receivers will never be dropped
                     sender.output(FlowsHeaderOutput::RunFlow).unwrap();
+                },
+            },
+            gtk::Button {
+                set_icon_name: relm4_icons::icon_names::PLAY_TABLE,
+                set_tooltip: &lang::lookup("flow-header-run-with-data"),
+                #[watch]
+                set_sensitive: model.flow_open,
+                connect_clicked[sender] => move |_| {
+                    // SAFETY: receivers will never be dropped
+                    sender.output(FlowsHeaderOutput::RunFlowWithData).unwrap();
                 },
             },
         },
@@ -166,14 +177,14 @@ impl Component for FlowsHeader {
             FlowsHeaderInput::AddStep(step_id) => {
                 // close popover
                 self.add_button.popdown();
-                // unwrap rationale: the receiver will never be disconnected
+                // SAFETY: the receiver will never be disconnected
                 sender.output(FlowsHeaderOutput::AddStep(step_id)).unwrap();
             }
             FlowsHeaderInput::AddTopSearchResult => {
                 if let Some(result) = self.search_results.get(0) {
                     widgets.menu_popover.popdown();
                     let id = result.value();
-                    // unwrap rationale: the receiver will never be disconnected
+                    // SAFETY: the receiver will never be disconnected
                     sender.output(FlowsHeaderOutput::AddStep(id)).unwrap();
                 }
             }

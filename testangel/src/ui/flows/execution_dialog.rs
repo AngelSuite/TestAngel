@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, sync::Arc};
+use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 
 use adw::prelude::*;
 use base64::{Engine, prelude::BASE64_STANDARD};
@@ -6,6 +6,7 @@ use evidenceangel::{Author, EvidencePackage};
 use relm4::{Component, ComponentParts, RelmWidgetExt, adw, gtk};
 use testangel::{
     action_loader::ActionMap,
+    data_spreadsheet::load_data_spreadsheet,
     ipc::EngineList,
     types::{AutomationFlow, FlowError},
 };
@@ -19,10 +20,13 @@ use crate::{
 #[derive(Debug)]
 pub enum ExecutionDialogCommandOutput {
     /// Execution completed with the resulting evidence
-    Complete(Vec<Evidence>),
+    Complete(Vec<Vec<Evidence>>),
 
     /// Execution failed at the given step and for the given reason
-    Failed(usize, FlowError, Vec<Evidence>),
+    Failed(usize, FlowError, Vec<Vec<Evidence>>),
+
+    /// The data spreadsheet was invalud
+    InvalidDataSpreadsheet(csv::Error),
 }
 
 #[derive(Debug)]
@@ -30,13 +34,14 @@ pub struct ExecutionDialogInit {
     pub flow: AutomationFlow,
     pub engine_list: Arc<EngineList>,
     pub action_map: Arc<ActionMap>,
+    pub spreadsheet_path: Option<PathBuf>,
 }
 
 #[derive(Debug)]
 pub enum ExecutionDialogInput {
     Close,
     FailedToGenerateEvidence(evidenceangel::Error),
-    SaveEvidence(Vec<Evidence>),
+    SaveEvidence(Vec<Vec<Evidence>>),
 }
 
 #[derive(Debug)]
@@ -55,29 +60,31 @@ where
         .build()
 }
 
-fn add_evidence(mut evp: EvidencePackage, evidence: Vec<Evidence>) -> evidenceangel::Result<()> {
-    let tc = evp.create_test_case("TestAngel Test Case")?;
-    let tc_evidence = tc.evidence_mut();
-    for ev in evidence {
-        let Evidence { label, content } = ev;
-        let mut ea_ev = match content {
-            EvidenceContent::Textual(text) => evidenceangel::Evidence::new(
-                evidenceangel::EvidenceKind::Text,
-                evidenceangel::EvidenceData::Text { content: text },
-            ),
-            EvidenceContent::ImageAsPngBase64(base64) => evidenceangel::Evidence::new(
-                evidenceangel::EvidenceKind::Image,
-                evidenceangel::EvidenceData::Base64 {
-                    data: BASE64_STANDARD
-                        .decode(base64)
-                        .map_err(|e| evidenceangel::Error::OtherExportError(Box::new(e)))?,
-                },
-            ),
-        };
-        if !label.is_empty() {
-            ea_ev.set_caption(Some(label));
+fn add_evidence(mut evp: EvidencePackage, all_case_evidence: Vec<Vec<Evidence>>) -> evidenceangel::Result<()> {
+    for evidence in all_case_evidence {
+        let tc = evp.create_test_case("TestAngel Test Case")?;
+        let tc_evidence = tc.evidence_mut();
+        for ev in evidence {
+            let Evidence { label, content } = ev;
+            let mut ea_ev = match content {
+                EvidenceContent::Textual(text) => evidenceangel::Evidence::new(
+                    evidenceangel::EvidenceKind::Text,
+                    evidenceangel::EvidenceData::Text { content: text },
+                ),
+                EvidenceContent::ImageAsPngBase64(base64) => evidenceangel::Evidence::new(
+                    evidenceangel::EvidenceKind::Image,
+                    evidenceangel::EvidenceData::Base64 {
+                        data: BASE64_STANDARD
+                            .decode(base64)
+                            .map_err(|e| evidenceangel::Error::OtherExportError(Box::new(e)))?,
+                    },
+                ),
+            };
+            if !label.is_empty() {
+                ea_ev.set_caption(Some(label));
+            }
+            tc_evidence.push(ea_ev);
         }
-        tc_evidence.push(ea_ev);
     }
     evp.save()?;
     Ok(())
@@ -123,39 +130,55 @@ impl Component for ExecutionDialog {
         let action_map = init.action_map.clone();
 
         sender.spawn_oneshot_command(move || {
-            let mut outputs: Vec<HashMap<usize, ParameterValue>> = Vec::new();
-            let mut evidence = Vec::new();
-
-            for engine in &**engine_list {
-                if engine.reset_state().is_err() {
-                    evidence.push(Evidence {
-                        label: String::from("WARNING: State Warning"),
-                        content: EvidenceContent::Textual(String::from("For this test execution, the state couldn't be correctly reset. Some results may not be accurate."))
-                    });
-                }
+            let spreadsheet_data = if let Some(path) = init.spreadsheet_path {
+                load_data_spreadsheet(path).map_err(ExecutionDialogCommandOutput::InvalidDataSpreadsheet)
+            } else {
+                Ok(vec![HashMap::new()])
+            };
+            if let Err(e) = spreadsheet_data {
+                return e;
             }
+            let spreadsheet_data = spreadsheet_data.unwrap();
 
-            for (step, action_config) in flow.actions.iter().enumerate() {
-                tracing::debug!("Output state: {outputs:?}");
-                tracing::debug!("Evidence state: {evidence:?}");
-                tracing::debug!("Executing: {action_config:?}");
-                match action_config.execute(
-                    &action_map,
-                    &engine_list,
-                    &outputs,
-                ) {
-                    Ok((output, ev)) => {
-                        outputs.push(output);
-                        evidence = [evidence, ev].concat();
-                    }
-                    Err((e, ev)) => {
-                        evidence = [evidence, ev].concat();
-                        return ExecutionDialogCommandOutput::Failed(step + 1, e, evidence);
+            let mut all_runs_evidence = vec![];
+            for spreadsheet_row in spreadsheet_data {
+                let mut outputs: Vec<HashMap<usize, ParameterValue>> = Vec::new();
+                let mut evidence = Vec::new();
+
+                for engine in &**engine_list {
+                    if engine.reset_state().is_err() {
+                        evidence.push(Evidence {
+                            label: String::from("WARNING: State Warning"),
+                            content: EvidenceContent::Textual(String::from("For this test execution, the state couldn't be correctly reset. Some results may not be accurate."))
+                        });
                     }
                 }
+
+                for (step, action_config) in flow.actions.iter().enumerate() {
+                    tracing::debug!("Output state: {outputs:?}");
+                    tracing::debug!("Evidence state: {evidence:?}");
+                    tracing::debug!("Executing: {action_config:?}");
+                    match action_config.execute(
+                        &action_map,
+                        &engine_list,
+                        &outputs,
+                        &spreadsheet_row,
+                    ) {
+                        Ok((output, ev)) => {
+                            outputs.push(output);
+                            evidence = [evidence, ev].concat();
+                        }
+                        Err((e, ev)) => {
+                            evidence = [evidence, ev].concat();
+                            all_runs_evidence.push(evidence);
+                            return ExecutionDialogCommandOutput::Failed(step + 1, e, all_runs_evidence);
+                        }
+                    }
+                }
+                all_runs_evidence.push(evidence);
             }
 
-            ExecutionDialogCommandOutput::Complete(evidence)
+            ExecutionDialogCommandOutput::Complete(all_runs_evidence)
         });
 
         ComponentParts { model, widgets }
@@ -264,6 +287,28 @@ impl Component for ExecutionDialog {
             ExecutionDialogCommandOutput::Complete(evidence) => {
                 tracing::info!("Execution complete.");
                 sender.input(ExecutionDialogInput::SaveEvidence(evidence));
+            }
+
+            ExecutionDialogCommandOutput::InvalidDataSpreadsheet(reason) => {
+                tracing::warn!("Data spreadsheet invalid: {reason:?}");
+                let dialog = create_message_dialog(
+                    lang::lookup("flow-execution-failed"),
+                    lang::lookup_with_args(
+                        "flow-execution-failed-data",
+                        lang_args!("reason", reason.to_string()),
+                    ),
+                );
+                dialog.set_transient_for(Some(root));
+                dialog.add_response("ok", &lang::lookup("ok"));
+                dialog.set_default_response(Some("ok"));
+                let sender_c = sender.clone();
+                dialog.connect_response(None, move |dlg, response| match response {
+                    _ => {
+                        sender_c.input(ExecutionDialogInput::Close);
+                        dlg.close();
+                    }
+                });
+                dialog.set_visible(true);
             }
 
             ExecutionDialogCommandOutput::Failed(step, reason, evidence) => {

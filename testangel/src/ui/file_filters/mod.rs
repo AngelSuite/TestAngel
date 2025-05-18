@@ -29,11 +29,19 @@ pub fn actions() -> FileFilter {
     filter
 }
 
-/// Get a [`FileFilter`] tuned to PDFs.
+/// Get a [`FileFilter`] tuned to EVPs.
 pub fn evps() -> FileFilter {
     let filter = gtk::FileFilter::new();
     filter.set_name(Some(&lang::lookup("filetype-evp")));
     filter.add_suffix("evp");
+    filter
+}
+
+/// Get a [`FileFilter`] tuned to CSVs.
+pub fn csvs() -> FileFilter {
+    let filter = gtk::FileFilter::new();
+    filter.set_name(Some(&lang::lookup("filetype-csv")));
+    filter.add_suffix("csv");
     filter
 }
 

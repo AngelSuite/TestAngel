@@ -3,6 +3,7 @@ use std::{collections::HashMap, fmt, sync::Arc};
 use mlua::{Lua, ObjectLike};
 use serde::{Deserialize, Serialize};
 use testangel_ipc::prelude::*;
+use thiserror::Error;
 
 use crate::{
     action_loader::ActionMap,
@@ -214,47 +215,27 @@ impl Action {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum FlowError {
+    #[error("An instruction returned an error: {error_kind:?}: {reason}")]
     FromInstruction {
         error_kind: ErrorKind,
         reason: String,
     },
+    #[error("An action script error occurred:\n{0}")]
     Lua(String),
+    #[error("An IPC call failed ({0:?}).")]
     IPCFailure(IpcError),
+    #[error("The action didn't return the correct amount of values.")]
     ActionDidntReturnCorrectArgumentCount,
+    #[error("The action didn't return valid values.")]
     ActionDidntReturnValidArguments,
+    #[error("An instruction was called with the wrong number of parameters.")]
     InstructionCalledWithWrongNumberOfParams,
+    #[error("An instruction was called with the wrong parameter type.")]
     InstructionCalledWithInvalidParamType,
-}
-
-impl std::error::Error for FlowError {}
-
-impl fmt::Display for FlowError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::IPCFailure(e) => write!(f, "An IPC call failed ({e:?})."),
-            Self::Lua(e) => write!(f, "An action script error occurred:\n{e}"),
-            Self::FromInstruction { error_kind, reason } => write!(
-                f,
-                "An instruction returned an error: {error_kind:?}: {reason}"
-            ),
-            Self::ActionDidntReturnCorrectArgumentCount => {
-                write!(f, "The action didn't return the correct amount of values.")
-            }
-            Self::ActionDidntReturnValidArguments => {
-                write!(f, "The action didn't return valid values.")
-            }
-            Self::InstructionCalledWithWrongNumberOfParams => write!(
-                f,
-                "An instruction was called with the wrong number of parameters."
-            ),
-            Self::InstructionCalledWithInvalidParamType => write!(
-                f,
-                "An instruction was called with the wrong parameter type."
-            ),
-        }
-    }
+    #[error("The column '{0}' was missing from the spreadsheet")]
+    SpreadsheetColumnMissing(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -307,6 +288,7 @@ impl ActionConfiguration {
         action_map: &Arc<ActionMap>,
         engine_map: &Arc<EngineList>,
         previous_action_outputs: &[HashMap<usize, ParameterValue>],
+        spreadsheet_row: &HashMap<String, ParameterValue>,
     ) -> Result<ActionExecutionSuccess, ActionExecutionFailure> {
         // Find action by ID
         let action = action_map.get_action_by_id(&self.action_id).unwrap();
@@ -315,6 +297,10 @@ impl ActionConfiguration {
         for (id, src) in &self.parameter_sources {
             let value = match src {
                 ActionParameterSource::Literal => self.parameter_values.get(id).unwrap().clone(),
+                ActionParameterSource::FromSpreadsheetColumn(col) => spreadsheet_row
+                    .get(col)
+                    .ok_or((FlowError::SpreadsheetColumnMissing(col.clone()), vec![]))?
+                    .clone(),
                 ActionParameterSource::FromOutput(step, id) => previous_action_outputs
                     .get(*step)
                     .unwrap()
@@ -353,7 +339,7 @@ impl ActionConfiguration {
         let lua_env = Lua::new();
         lua_env.set_app_data::<Vec<Evidence>>(vec![]);
 
-        // unwrap rationale: this will only fail under memory issues
+        // SAFETY: this will only fail under memory issues
         for engine in &***engine_map {
             let engine_lua_name = engine.lua_name.clone();
             let engine_tbl = lua_env.create_table().unwrap();
@@ -627,6 +613,7 @@ impl From<Action> for ActionConfiguration {
 pub enum ActionParameterSource {
     #[default]
     Literal,
+    FromSpreadsheetColumn(String),
     FromOutput(usize, usize),
 }
 
@@ -635,6 +622,9 @@ impl fmt::Display for ActionParameterSource {
         match self {
             Self::FromOutput(step, id) => {
                 write!(f, "From Step {}: Output {}", step + 1, id + 1)
+            }
+            Self::FromSpreadsheetColumn(col) => {
+                write!(f, "From Spreadsheet Column: {col}")
             }
             Self::Literal => write!(f, "Literal"),
         }
