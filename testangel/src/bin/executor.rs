@@ -63,7 +63,7 @@ fn main() {
                 outputs.push(output);
                 evidence = [evidence, ev].concat();
             }
-            Err(e) => {
+            Err((e, _ev)) => {
                 panic!("Failed to execute: {e}");
             }
         }

@@ -148,7 +148,8 @@ impl Component for ExecutionDialog {
                         outputs.push(output);
                         evidence = [evidence, ev].concat();
                     }
-                    Err(e) => {
+                    Err((e, ev)) => {
+                        evidence = [evidence, ev].concat();
                         return ExecutionDialogCommandOutput::Failed(step + 1, e, evidence);
                     }
                 }

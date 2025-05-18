@@ -282,6 +282,9 @@ impl AutomationFlow {
     }
 }
 
+pub type ActionExecutionSuccess = (HashMap<usize, ParameterValue>, Vec<Evidence>);
+pub type ActionExecutionFailure = (FlowError, Vec<Evidence>);
+
 #[allow(clippy::unsafe_derive_deserialize)]
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ActionConfiguration {
@@ -294,7 +297,7 @@ impl ActionConfiguration {
     ///
     /// ## Errors
     ///
-    /// Returns an error if execution failed.
+    /// Returns an error if execution failed, and the current evidence.
     ///
     /// ## Panics
     ///
@@ -304,7 +307,7 @@ impl ActionConfiguration {
         action_map: &Arc<ActionMap>,
         engine_map: &Arc<EngineList>,
         previous_action_outputs: &[HashMap<usize, ParameterValue>],
-    ) -> Result<(HashMap<usize, ParameterValue>, Vec<Evidence>), FlowError> {
+    ) -> Result<ActionExecutionSuccess, ActionExecutionFailure> {
         // Find action by ID
         let action = action_map.get_action_by_id(&self.action_id).unwrap();
         // Build action parameters
@@ -343,7 +346,7 @@ impl ActionConfiguration {
         engine_map: &Arc<EngineList>,
         action: &Action,
         action_parameters: Vec<ParameterValue>,
-    ) -> Result<(HashMap<usize, ParameterValue>, Vec<Evidence>), FlowError> {
+    ) -> Result<ActionExecutionSuccess, ActionExecutionFailure> {
         let mut output = HashMap::new();
 
         // Prepare Lua environment
@@ -503,9 +506,12 @@ impl ActionConfiguration {
             match param {
                 ParameterValue::Boolean(b) => params.push(mlua::Value::Boolean(b)),
                 ParameterValue::String(s) => params.push(mlua::Value::String(
-                    lua_env
-                        .create_string(s)
-                        .map_err(|e| FlowError::Lua(e.to_string()))?,
+                    lua_env.create_string(s).map_err(|e| {
+                        (
+                            FlowError::Lua(e.to_string()),
+                            lua_env.app_data_ref::<Vec<Evidence>>().unwrap().clone(),
+                        )
+                    })?,
                 )),
                 ParameterValue::Integer(i) => params.push(mlua::Value::Integer(i)),
                 ParameterValue::Decimal(n) => params.push(mlua::Value::Number(n)),
@@ -516,18 +522,31 @@ impl ActionConfiguration {
             .load(&action.script)
             .set_name(action.name().unwrap_or("Unnamed Action".to_string()))
             .exec()
-            .map_err(|e| FlowError::Lua(e.to_string()))?;
+            .map_err(|e| {
+                (
+                    FlowError::Lua(e.to_string()),
+                    lua_env.app_data_ref::<Vec<Evidence>>().unwrap().clone(),
+                )
+            })?;
 
         let res: mlua::MultiValue = lua_env
             .globals()
             .call_function("run_action", mlua::MultiValue::from_vec(params))
-            .map_err(|e| FlowError::Lua(e.to_string()))?;
+            .map_err(|e| {
+                (
+                    FlowError::Lua(e.to_string()),
+                    lua_env.app_data_ref::<Vec<Evidence>>().unwrap().clone(),
+                )
+            })?;
         let res = res.into_vec();
 
         // Process return values
         let ao = action.outputs();
         if ao.len() != res.len() {
-            return Err(FlowError::ActionDidntReturnCorrectArgumentCount);
+            return Err((
+                FlowError::ActionDidntReturnCorrectArgumentCount,
+                lua_env.app_data_ref::<Vec<Evidence>>().unwrap().clone(),
+            ));
         }
         for i in 0..ao.len() {
             let (_name, kind) = ao[i].clone();
@@ -537,10 +556,18 @@ impl ActionConfiguration {
                 mlua::Value::String(s) => ParameterValue::String(s.to_str().unwrap().to_owned()),
                 mlua::Value::Integer(i) => ParameterValue::Integer(i),
                 mlua::Value::Number(n) => ParameterValue::Decimal(n),
-                _ => return Err(FlowError::ActionDidntReturnValidArguments),
+                _ => {
+                    return Err((
+                        FlowError::ActionDidntReturnValidArguments,
+                        lua_env.app_data_ref::<Vec<Evidence>>().unwrap().clone(),
+                    ));
+                }
             };
             if ta_out.kind() != kind {
-                return Err(FlowError::ActionDidntReturnValidArguments);
+                return Err((
+                    FlowError::ActionDidntReturnValidArguments,
+                    lua_env.app_data_ref::<Vec<Evidence>>().unwrap().clone(),
+                ));
             }
             output.insert(i, ta_out);
         }
