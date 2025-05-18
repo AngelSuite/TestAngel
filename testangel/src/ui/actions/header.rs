@@ -168,7 +168,7 @@ impl Component for ActionsHeader {
             ActionsHeaderInput::AddStep(step_id) => {
                 // close popover
                 self.add_button.popdown();
-                // unwrap rationale: the receiver will never be disconnected
+                // SAFETY: the receiver will never be disconnected
                 sender
                     .output(ActionsHeaderOutput::AddStep(step_id))
                     .unwrap();
@@ -177,7 +177,7 @@ impl Component for ActionsHeader {
                 if let Some(result) = self.search_results.get(0) {
                     widgets.menu_popover.popdown();
                     let id = result.value();
-                    // unwrap rationale: the receiver will never be disconnected
+                    // SAFETY: the receiver will never be disconnected
                     sender.output(ActionsHeaderOutput::AddStep(id)).unwrap();
                 }
             }
