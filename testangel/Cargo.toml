@@ -54,7 +54,7 @@ mlua = { version = "0.10.2", features = [ "luau" ] }
 pest = "2.7.9"
 pest_derive = "2.7.9"
 convert_case = "0.8.0"
-evidenceangel = { version = "1.4.0", git = "https://github.com/lilopkins/evidenceangel.git" }
+evidenceangel = { version = "1.5.0-rc.8", git = "https://github.com/lilopkins/evidenceangel.git", branch = "next" }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", optional = true }
 tracing-subscriber-multi = { version = "0.1.0", optional = true }
