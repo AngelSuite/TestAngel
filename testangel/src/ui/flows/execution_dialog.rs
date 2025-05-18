@@ -305,11 +305,9 @@ impl Component for ExecutionDialog {
                 dialog.add_response("ok", &lang::lookup("ok"));
                 dialog.set_default_response(Some("ok"));
                 let sender_c = sender.clone();
-                dialog.connect_response(None, move |dlg, response| match response {
-                    _ => {
-                        sender_c.input(ExecutionDialogInput::Close);
-                        dlg.close();
-                    }
+                dialog.connect_response(None, move |dlg, _response| {
+                    sender_c.input(ExecutionDialogInput::Close);
+                    dlg.close();
                 });
                 dialog.set_visible(true);
             }
