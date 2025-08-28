@@ -48,7 +48,7 @@ macro_rules! iwp {
 plugin_interface! {
     extern trait EngineInterface {
         /// Register a logger
-        fn ta_register_logger(fn_log: unsafe extern fn(ta_logging_level, *const c_char));
+        fn ta_register_logger(fn_log: unsafe extern "C" fn(ta_logging_level, *const c_char));
 
         /// Return a list of instructions this engine supports
         fn ta_request_instructions(

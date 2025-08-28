@@ -404,8 +404,10 @@ impl ActionConfiguration {
                                 ParameterKind::Integer => {
                                     let maybe_int = lua.coerce_integer(arg)?;
                                     if let Some(i) = maybe_int {
-                                        param_map
-                                            .insert(param_id.clone(), ParameterValue::Integer(i));
+                                        param_map.insert(
+                                            param_id.clone(),
+                                            ParameterValue::Integer(i.try_into().unwrap()),
+                                        );
                                     } else {
                                         return Err(mlua::Error::external(
                                             FlowError::InstructionCalledWithInvalidParamType,
@@ -454,7 +456,8 @@ impl ActionConfiguration {
                                         }
                                         ParameterValue::Integer(i) => {
                                             tracing::debug!("Integer {i} returned to Lua");
-                                            outputs.push(mlua::Value::Integer(i));
+                                            outputs
+                                                .push(mlua::Value::Integer(i.try_into().unwrap()));
                                         }
                                         ParameterValue::Decimal(n) => {
                                             tracing::debug!("Decimal {n} returned to Lua");
@@ -499,7 +502,9 @@ impl ActionConfiguration {
                         )
                     })?,
                 )),
-                ParameterValue::Integer(i) => params.push(mlua::Value::Integer(i)),
+                ParameterValue::Integer(i) => {
+                    params.push(mlua::Value::Integer(i.try_into().unwrap()))
+                }
                 ParameterValue::Decimal(n) => params.push(mlua::Value::Number(n)),
             }
         }
@@ -540,7 +545,7 @@ impl ActionConfiguration {
             let ta_out = match out {
                 mlua::Value::Boolean(b) => ParameterValue::Boolean(b),
                 mlua::Value::String(s) => ParameterValue::String(s.to_str().unwrap().to_owned()),
-                mlua::Value::Integer(i) => ParameterValue::Integer(i),
+                mlua::Value::Integer(i) => ParameterValue::Integer(i.try_into().unwrap()),
                 mlua::Value::Number(n) => ParameterValue::Decimal(n),
                 _ => {
                     return Err((

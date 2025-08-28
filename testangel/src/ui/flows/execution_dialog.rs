@@ -2,7 +2,7 @@ use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 
 use adw::prelude::*;
 use base64::{Engine, prelude::BASE64_STANDARD};
-use evidenceangel::{Author, EvidencePackage};
+use evp::{Author, EvidencePackage};
 use relm4::{Component, ComponentParts, RelmWidgetExt, adw, gtk};
 use testangel::{
     action_loader::ActionMap,
@@ -40,7 +40,7 @@ pub struct ExecutionDialogInit {
 #[derive(Debug)]
 pub enum ExecutionDialogInput {
     Close,
-    FailedToGenerateEvidence(evidenceangel::Error),
+    FailedToGenerateEvidence(evp::Error),
     SaveEvidence(Vec<Vec<Evidence>>),
 }
 
@@ -63,23 +63,29 @@ where
 fn add_evidence(
     mut evp: EvidencePackage,
     all_case_evidence: Vec<Vec<Evidence>>,
-) -> evidenceangel::Result<()> {
+) -> evp::Result<()> {
     for evidence in all_case_evidence {
         let tc = evp.create_test_case("TestAngel Test Case")?;
         let tc_evidence = tc.evidence_mut();
         for ev in evidence {
             let Evidence { label, content } = ev;
             let mut ea_ev = match content {
-                EvidenceContent::Textual(text) => evidenceangel::Evidence::new(
-                    evidenceangel::EvidenceKind::Text,
-                    evidenceangel::EvidenceData::Text { content: text },
+                EvidenceContent::Textual(text) => evp::Evidence::new(
+                    evp::EvidenceKind::Text,
+                    evp::EvidenceData::Text { content: text },
                 ),
-                EvidenceContent::ImageAsPngBase64(base64) => evidenceangel::Evidence::new(
-                    evidenceangel::EvidenceKind::Image,
-                    evidenceangel::EvidenceData::Base64 {
+                EvidenceContent::ImageAsPngBase64(base64) => evp::Evidence::new(
+                    evp::EvidenceKind::Image,
+                    evp::EvidenceData::Base64 {
                         data: BASE64_STANDARD
                             .decode(base64)
-                            .map_err(|e| evidenceangel::Error::OtherExportError(Box::new(e)))?,
+                            .map_err(|e| evp::Error::OtherExportError(Box::new(e)))?,
+                    },
+                ),
+                EvidenceContent::HttpRequestResponse(req, res) => evp::Evidence::new(
+                    evp::EvidenceKind::Http,
+                    evp::EvidenceData::Base64 {
+                        data: format!("{req}\x1e{res}").into_bytes(),
                     },
                 ),
             };

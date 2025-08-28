@@ -1,7 +1,6 @@
 use std::{borrow::Cow, collections::HashMap, fmt::Display, sync::Mutex};
 
-use fluent::FluentValue;
-use fluent_templates::{LanguageIdentifier, Loader};
+use fluent_templates::{LanguageIdentifier, Loader, fluent_bundle::FluentValue};
 use once_cell::sync::Lazy;
 
 fluent_templates::static_loader! {
