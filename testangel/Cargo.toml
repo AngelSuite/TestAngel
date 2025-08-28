@@ -21,7 +21,7 @@ required-features = [ "cli" ]
 
 [features]
 default = [ "ui" ]
-ui = [ "dep:relm4", "dep:relm4-icons", "dep:opener", "dep:tracing-subscriber-multi", "dep:fluent", "dep:fluent-templates", "dep:once_cell", "dep:fuzzy-matcher", "dep:sys-locale", "dep:sourceview5" ]
+ui = [ "dep:relm4", "dep:relm4-icons", "dep:opener", "dep:tracing-subscriber-multi", "dep:tracing-panic", "dep:fluent-templates", "dep:once_cell", "dep:fuzzy-matcher", "dep:sys-locale", "dep:sourceview5" ]
 cli = [ "dep:clap", "dep:tracing-subscriber" ]
 windows-keep-console-window = []
 
@@ -55,6 +55,7 @@ pest_derive = "2.7.9"
 convert_case = "0.8.0"
 evp = "1.0.0-beta.1"
 tracing = "0.1.41"
+tracing-panic = { version = "0.1.2", optional = true }
 tracing-subscriber = { version = "0.3.19", optional = true }
 tracing-subscriber-multi = { version = "0.1.0", optional = true }
 libc = "0.2.171"
