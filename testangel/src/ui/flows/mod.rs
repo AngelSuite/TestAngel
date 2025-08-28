@@ -453,8 +453,8 @@ impl Component for FlowsModel {
                                     {
                                         let (_name, kind) = &action.parameters()[*p_id];
                                         // Check that parameter from step->output is of type kind
-                                        if let Some(other_ac) = actions_clone.get(*other_step) {
-                                            if let Some(other_action) = &self
+                                        if let Some(other_ac) = actions_clone.get(*other_step)
+                                            && let Some(other_action) = &self
                                                 .action_map
                                                 .get_action_by_id(&other_ac.action_id)
                                             {
@@ -472,7 +472,6 @@ impl Component for FlowsModel {
                                                     *src = ActionParameterSource::Literal;
                                                 }
                                             }
-                                        }
                                         // If any of these if's fail, then the main loop will catch and fail later.
                                     }
                                 }
@@ -814,11 +813,10 @@ impl Component for FlowsModel {
 
                 // Adjust step just about to paste
                 for source in config.parameter_sources.values_mut() {
-                    if let ActionParameterSource::FromOutput(from_step, _output_idx) = source {
-                        if *from_step <= idx {
+                    if let ActionParameterSource::FromOutput(from_step, _output_idx) = source
+                        && *from_step <= idx {
                             *source = ActionParameterSource::Literal;
                         }
-                    }
                 }
 
                 tracing::info!("Pasting step to {}", idx + 1);

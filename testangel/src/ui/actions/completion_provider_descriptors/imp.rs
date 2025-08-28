@@ -26,8 +26,8 @@ impl CompletionProviderImpl for CompletionProviderDescriptors {
         context: &sourceview5::CompletionContext,
         proposal: &sourceview5::CompletionProposal,
     ) {
-        if let Ok(proposal) = proposal.clone().downcast::<DescriptorCompletionProposal>() {
-            if let Some((mut start, mut end)) = context.bounds() {
+        if let Ok(proposal) = proposal.clone().downcast::<DescriptorCompletionProposal>()
+            && let Some((mut start, mut end)) = context.bounds() {
                 let buffer = start.buffer();
                 let descriptor = proposal.descriptor();
                 let mut len_to_insert = descriptor.len();
@@ -61,7 +61,6 @@ impl CompletionProviderImpl for CompletionProviderDescriptors {
                     buffer.delete_mark(&end_mark);
                 }
             }
-        }
     }
 
     fn display(

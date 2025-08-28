@@ -102,10 +102,10 @@ pub fn engine(stream: TokenStream) -> TokenStream {
                     }
                 }
             }
-        } else if attr.path().is_ident("doc") {
-            if let Meta::NameValue(name_val) = &attr.meta {
-                if let Expr::Lit(lit) = &name_val.value {
-                    if let Lit::Str(s) = &lit.lit {
+        } else if attr.path().is_ident("doc")
+            && let Meta::NameValue(name_val) = &attr.meta
+                && let Expr::Lit(lit) = &name_val.value
+                    && let Lit::Str(s) = &lit.lit {
                         let doc_line = s.value();
                         let doc_line = doc_line.trim();
                         if doc_line.is_empty() {
@@ -122,9 +122,6 @@ pub fn engine(stream: TokenStream) -> TokenStream {
                             description.push_str(doc_line);
                         }
                     }
-                }
-            }
-        }
     }
 
     // Remove engine attribute from output

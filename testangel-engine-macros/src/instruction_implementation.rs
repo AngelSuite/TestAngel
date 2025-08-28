@@ -141,10 +141,10 @@ impl InstructionFn {
                         }
                     }
                 }
-            } else if attr.path().is_ident("doc") {
-                if let Meta::NameValue(name_val) = &attr.meta {
-                    if let Expr::Lit(lit) = &name_val.value {
-                        if let Lit::Str(s) = &lit.lit {
+            } else if attr.path().is_ident("doc")
+                && let Meta::NameValue(name_val) = &attr.meta
+                    && let Expr::Lit(lit) = &name_val.value
+                        && let Lit::Str(s) = &lit.lit {
                             let doc_line = s.value();
                             let doc_line = doc_line.trim();
                             if doc_line.is_empty() {
@@ -161,9 +161,6 @@ impl InstructionFn {
                                 description.push_str(doc_line);
                             }
                         }
-                    }
-                }
-            }
         }
 
         let mut param_expansions = vec![];
@@ -299,8 +296,8 @@ impl Parse for InstructionParameter {
         let mut friendly_name = None;
 
         for attr in attrs {
-            if attr.path().is_ident("arg") {
-                if let Some(vars) = parse_as_kv_attr("arg", &attr) {
+            if attr.path().is_ident("arg")
+                && let Some(vars) = parse_as_kv_attr("arg", &attr) {
                     for var in vars.vars {
                         match var.key.to_string().as_str() {
                             "id" => id = Some(var.value),
@@ -312,7 +309,6 @@ impl Parse for InstructionParameter {
                         }
                     }
                 }
-            }
         }
 
         let ident: Ident = input.parse()?;
@@ -361,9 +357,9 @@ impl Parse for InstructionReturn {
         let mut id = None;
         let mut friendly_name = None;
 
-        if let Some(attr) = attrs.first() {
-            if attr.path().is_ident("output") {
-                if let Some(vars) = parse_as_kv_attr("output", attr) {
+        if let Some(attr) = attrs.first()
+            && attr.path().is_ident("output")
+                && let Some(vars) = parse_as_kv_attr("output", attr) {
                     for var in vars.vars {
                         match var.key.to_string().as_str() {
                             "id" => id = Some(var.value),
@@ -375,8 +371,6 @@ impl Parse for InstructionReturn {
                         }
                     }
                 }
-            }
-        }
 
         if id.is_none() {
             abort_call_site!("Return types require an id");

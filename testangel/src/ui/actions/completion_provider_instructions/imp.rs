@@ -36,8 +36,7 @@ impl CompletionProviderImpl for CompletionProviderEngineInstructions {
         if let Ok(proposal) = proposal
             .clone()
             .downcast::<EngineInstructionCompletionProposal>()
-        {
-            if let Some((mut start, mut end)) = context.bounds() {
+            && let Some((mut start, mut end)) = context.bounds() {
                 let buffer = start.buffer();
                 let instruction_lua_name = proposal.instruction_lua_name();
                 let mut len_to_insert = instruction_lua_name.len();
@@ -106,7 +105,6 @@ impl CompletionProviderImpl for CompletionProviderEngineInstructions {
                     buffer.select_range(&start_of_params, &after_first_param);
                 }
             }
-        }
     }
 
     fn display(
@@ -283,8 +281,7 @@ impl CompletionProviderImpl for CompletionProviderEngineInstructions {
                 if let Ok(prop1) = prop1
                     .clone()
                     .downcast::<EngineInstructionCompletionProposal>()
-                {
-                    if let Ok(prop2) = prop2
+                    && let Ok(prop2) = prop2
                         .clone()
                         .downcast::<EngineInstructionCompletionProposal>()
                     {
@@ -296,7 +293,6 @@ impl CompletionProviderImpl for CompletionProviderEngineInstructions {
                             ord => ord,
                         };
                     }
-                }
                 std::cmp::Ordering::Equal
             });
             Ok(list.upcast::<ListModel>())

@@ -4070,7 +4070,6 @@ dependencies = [
  "libloading",
  "mlua",
  "octocrab",
- "once_cell",
  "opener",
  "pest",
  "pest_derive",

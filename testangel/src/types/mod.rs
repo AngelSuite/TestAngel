@@ -97,11 +97,9 @@ impl Action {
                 descriptor_kind,
                 value,
             } = d
-            {
-                if descriptor_kind == KeyValueDescriptorKind::Name {
+                && descriptor_kind == KeyValueDescriptorKind::Name {
                     return Some(value);
                 }
-            }
         }
         None
     }
@@ -115,11 +113,9 @@ impl Action {
                 descriptor_kind,
                 value,
             } = d
-            {
-                if descriptor_kind == KeyValueDescriptorKind::Group {
+                && descriptor_kind == KeyValueDescriptorKind::Group {
                     return Some(value);
                 }
-            }
         }
         None
     }
@@ -133,11 +129,9 @@ impl Action {
                 descriptor_kind,
                 value,
             } = d
-            {
-                if descriptor_kind == KeyValueDescriptorKind::Creator {
+                && descriptor_kind == KeyValueDescriptorKind::Creator {
                     return Some(value);
                 }
-            }
         }
         None
     }
@@ -151,11 +145,9 @@ impl Action {
                 descriptor_kind,
                 value,
             } = d
-            {
-                if descriptor_kind == KeyValueDescriptorKind::Description {
+                && descriptor_kind == KeyValueDescriptorKind::Description {
                     return Some(value);
                 }
-            }
         }
         None
     }
@@ -165,11 +157,10 @@ impl Action {
     pub fn hide_in_flow_editor(&self) -> bool {
         let descriptors = Descriptor::parse_all(&self.script);
         for d in descriptors {
-            if let Descriptor::FlagDescriptor(flag) = d {
-                if flag == FlagDescriptorKind::HideInFlowEditor {
+            if let Descriptor::FlagDescriptor(flag) = d
+                && flag == FlagDescriptorKind::HideInFlowEditor {
                     return true;
                 }
-            }
         }
         false
     }
@@ -185,11 +176,9 @@ impl Action {
                 kind,
                 name,
             } = d
-            {
-                if descriptor_kind == TypedDescriptorKind::Parameter {
+                && descriptor_kind == TypedDescriptorKind::Parameter {
                     params.push((name.clone(), kind));
                 }
-            }
         }
         params
     }
@@ -205,11 +194,9 @@ impl Action {
                 kind,
                 name,
             } = d
-            {
-                if descriptor_kind == TypedDescriptorKind::Return {
+                && descriptor_kind == TypedDescriptorKind::Return {
                     outputs.push((name.clone(), kind));
                 }
-            }
         }
         outputs
     }
@@ -470,7 +457,7 @@ impl ActionConfiguration {
                                         ParameterValue::Integer(i) => {
                                             tracing::debug!("Integer {i} returned to Lua");
                                             outputs
-                                                .push(mlua::Value::Integer(i.try_into().unwrap()));
+                                                .push(mlua::Value::Integer(i.into()));
                                         }
                                         ParameterValue::Decimal(n) => {
                                             tracing::debug!("Decimal {n} returned to Lua");
@@ -516,7 +503,7 @@ impl ActionConfiguration {
                     })?,
                 )),
                 ParameterValue::Integer(i) => {
-                    params.push(mlua::Value::Integer(i.try_into().unwrap()))
+                    params.push(mlua::Value::Integer(i.into()));
                 }
                 ParameterValue::Decimal(n) => params.push(mlua::Value::Number(n)),
             }

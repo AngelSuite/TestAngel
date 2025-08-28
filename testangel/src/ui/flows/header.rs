@@ -244,8 +244,8 @@ impl Component for FlowsHeader {
                     let matcher = SkimMatcherV2::default();
                     for (group, actions) in self.action_map.get_by_group() {
                         for action in actions {
-                            if !action.hide_in_flow_editor() {
-                                if let Some(score) = matcher.fuzzy_match(
+                            if !action.hide_in_flow_editor()
+                                && let Some(score) = matcher.fuzzy_match(
                                     &format!(
                                         "{group}: {}",
                                         action
@@ -257,7 +257,6 @@ impl Component for FlowsHeader {
                                 ) {
                                     unsorted_results.push((score, action));
                                 }
-                            }
                         }
                     }
 

@@ -7,7 +7,7 @@ pub struct FileFilterListModel {
     pub(super) inner: RefCell<Vec<FileFilter>>,
 }
 
-/// Basic declaration of our type for the GObject type system
+/// Basic declaration of our type for the `GObject` type system
 #[glib::object_subclass]
 impl ObjectSubclass for FileFilterListModel {
     const NAME: &'static str = "TestAngelFileFilterListModel";

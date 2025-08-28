@@ -90,7 +90,7 @@ pub unsafe fn ipc_call(engine: &Engine, request: &Request) -> Result<Response, I
                 let mut raw_instructions: *mut *const ta_instruction_metadata =
                     std::ptr::null_mut();
 
-                lib.ta_request_instructions(&mut engine_meta, &mut raw_instructions)
+                lib.ta_request_instructions(&raw mut engine_meta, &raw mut raw_instructions)
                     .map_err(|_| IpcError::EngineNotCompliant)?;
 
                 if engine_meta.szFriendlyName.is_null() {
@@ -126,7 +126,7 @@ pub unsafe fn ipc_call(engine: &Engine, request: &Request) -> Result<Response, I
                         str_slice.to_owned()
                     }
                 };
-                lib.ta_free_engine_metadata(&engine_meta)
+                lib.ta_free_engine_metadata(&raw const engine_meta)
                     .map_err(|_| IpcError::EngineNotCompliant)?;
 
                 let mut i = 0;
@@ -247,8 +247,8 @@ pub unsafe fn ipc_call(engine: &Engine, request: &Request) -> Result<Response, I
                                 arp_parameter_list,
                                 inst_with_params.parameters.len().try_into().unwrap(),
                                 inst_with_params.dry_run,
-                                &mut parp_output_list,
-                                &mut parp_output_evidence_list,
+                                &raw mut parp_output_list,
+                                &raw mut parp_output_evidence_list,
                             )
                             .map_err(|_| IpcError::EngineNotCompliant)?;
 
@@ -559,8 +559,8 @@ fn search_engine_dir<P: AsRef<Path>>(
     for path in fs::read_dir(engine_dir).unwrap() {
         let path = path.unwrap();
         let basename = path.file_name();
-        if let Ok(meta) = path.metadata() {
-            if meta.is_dir() {
+        if let Ok(meta) = path.metadata()
+            && meta.is_dir() {
                 // Search subdir
                 search_engine_dir(
                     path.path()
@@ -575,10 +575,9 @@ fn search_engine_dir<P: AsRef<Path>>(
                 );
                 continue;
             }
-        }
 
-        if let Ok(str) = basename.into_string() {
-            if Path::new(&str).extension().is_some_and(|ext| {
+        if let Ok(str) = basename.into_string()
+            && Path::new(&str).extension().is_some_and(|ext| {
                 ext.eq_ignore_ascii_case("so")
                     || ext.eq_ignore_ascii_case("dll")
                     || ext.eq_ignore_ascii_case("dylib")
@@ -593,11 +592,10 @@ fn search_engine_dir<P: AsRef<Path>>(
                             ..Default::default()
                         };
 
-                        if let Some(lib) = &engine.lib {
-                            if let Err(e) = lib.ta_register_logger(log_fn) {
+                        if let Some(lib) = &engine.lib
+                            && let Err(e) = lib.ta_register_logger(log_fn) {
                                 tracing::warn!("Failed to register logger with engine: {e}");
                             }
-                        }
 
                         match unsafe { ipc_call(&engine, &Request::Instructions) } {
                             Ok(res) => {
@@ -644,6 +642,5 @@ fn search_engine_dir<P: AsRef<Path>>(
                     Err(e) => tracing::warn!("Failed to load engine {str}: {e}"),
                 }
             }
-        }
     }
 }

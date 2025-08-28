@@ -32,8 +32,8 @@ impl CompletionProviderImpl for CompletionProviderEngines {
         context: &sourceview5::CompletionContext,
         proposal: &sourceview5::CompletionProposal,
     ) {
-        if let Ok(proposal) = proposal.clone().downcast::<EngineCompletionProposal>() {
-            if let Some((mut start, mut end)) = context.bounds() {
+        if let Ok(proposal) = proposal.clone().downcast::<EngineCompletionProposal>()
+            && let Some((mut start, mut end)) = context.bounds() {
                 let buffer = start.buffer();
                 let engine_lua_name = proposal.engine_lua_name();
                 let mut len_to_insert = engine_lua_name.len();
@@ -67,7 +67,6 @@ impl CompletionProviderImpl for CompletionProviderEngines {
                     buffer.delete_mark(&end_mark);
                 }
             }
-        }
     }
 
     fn display(
@@ -175,8 +174,8 @@ impl CompletionProviderImpl for CompletionProviderEngines {
             }
 
             list.sort(|prop1, prop2| {
-                if let Ok(prop1) = prop1.clone().downcast::<EngineCompletionProposal>() {
-                    if let Ok(prop2) = prop2.clone().downcast::<EngineCompletionProposal>() {
+                if let Ok(prop1) = prop1.clone().downcast::<EngineCompletionProposal>()
+                    && let Ok(prop2) = prop2.clone().downcast::<EngineCompletionProposal>() {
                         // Sort by source first, then alphabetical
                         return match prop1.source().cmp(&prop2.source()) {
                             std::cmp::Ordering::Equal => {
@@ -185,7 +184,6 @@ impl CompletionProviderImpl for CompletionProviderEngines {
                             ord => ord,
                         };
                     }
-                }
                 std::cmp::Ordering::Equal
             });
             Ok(list.upcast::<ListModel>())
