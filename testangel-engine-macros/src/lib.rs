@@ -102,27 +102,25 @@ pub fn engine(stream: TokenStream) -> TokenStream {
                     }
                 }
             }
-        } else if attr.path().is_ident("doc") {
-            if let Meta::NameValue(name_val) = &attr.meta {
-                if let Expr::Lit(lit) = &name_val.value {
-                    if let Lit::Str(s) = &lit.lit {
-                        let doc_line = s.value();
-                        let doc_line = doc_line.trim();
-                        if doc_line.is_empty() {
-                            description.push('\n');
-                        } else {
-                            if description
-                                .chars()
-                                .last()
-                                .is_some_and(|c| !c.is_whitespace())
-                            {
-                                description.push(' ');
-                            }
-
-                            description.push_str(doc_line);
-                        }
-                    }
+        } else if attr.path().is_ident("doc")
+            && let Meta::NameValue(name_val) = &attr.meta
+            && let Expr::Lit(lit) = &name_val.value
+            && let Lit::Str(s) = &lit.lit
+        {
+            let doc_line = s.value();
+            let doc_line = doc_line.trim();
+            if doc_line.is_empty() {
+                description.push('\n');
+            } else {
+                if description
+                    .chars()
+                    .last()
+                    .is_some_and(|c| !c.is_whitespace())
+                {
+                    description.push(' ');
                 }
+
+                description.push_str(doc_line);
             }
         }
     }
@@ -494,6 +492,7 @@ pub fn engine(stream: TokenStream) -> TokenStream {
                         (*evidence).kind = match &ev.content {
                             EvidenceContent::Textual(_) => ta_evidence_kind::TA_EVIDENCE_TEXTUAL,
                             EvidenceContent::ImageAsPngBase64(_) => ta_evidence_kind::TA_EVIDENCE_PNGBASE64,
+                            EvidenceContent::HttpRequestResponse(_, _) => ta_evidence_kind::TA_EVIDENCE_HTTPREQRES,
                         };
 
                         match &ev.content {
@@ -501,6 +500,11 @@ pub fn engine(stream: TokenStream) -> TokenStream {
                                 let data = CString::new(txt.as_str()).unwrap();
                                 (*evidence).value = data.into_raw();
                             },
+                            EvidenceContent::HttpRequestResponse(req, res) => {
+                                let data = format!("{req}\x1e{res}");
+                                let data = CString::new(data.as_str()).unwrap();
+                                (*evidence).value = data.into_raw();
+                            }
                         }
 
                         *evidence_array.add(idx) = evidence;

@@ -97,10 +97,9 @@ impl Action {
                 descriptor_kind,
                 value,
             } = d
+                && descriptor_kind == KeyValueDescriptorKind::Name
             {
-                if descriptor_kind == KeyValueDescriptorKind::Name {
-                    return Some(value);
-                }
+                return Some(value);
             }
         }
         None
@@ -115,10 +114,9 @@ impl Action {
                 descriptor_kind,
                 value,
             } = d
+                && descriptor_kind == KeyValueDescriptorKind::Group
             {
-                if descriptor_kind == KeyValueDescriptorKind::Group {
-                    return Some(value);
-                }
+                return Some(value);
             }
         }
         None
@@ -133,10 +131,9 @@ impl Action {
                 descriptor_kind,
                 value,
             } = d
+                && descriptor_kind == KeyValueDescriptorKind::Creator
             {
-                if descriptor_kind == KeyValueDescriptorKind::Creator {
-                    return Some(value);
-                }
+                return Some(value);
             }
         }
         None
@@ -151,10 +148,9 @@ impl Action {
                 descriptor_kind,
                 value,
             } = d
+                && descriptor_kind == KeyValueDescriptorKind::Description
             {
-                if descriptor_kind == KeyValueDescriptorKind::Description {
-                    return Some(value);
-                }
+                return Some(value);
             }
         }
         None
@@ -165,10 +161,10 @@ impl Action {
     pub fn hide_in_flow_editor(&self) -> bool {
         let descriptors = Descriptor::parse_all(&self.script);
         for d in descriptors {
-            if let Descriptor::FlagDescriptor(flag) = d {
-                if flag == FlagDescriptorKind::HideInFlowEditor {
-                    return true;
-                }
+            if let Descriptor::FlagDescriptor(flag) = d
+                && flag == FlagDescriptorKind::HideInFlowEditor
+            {
+                return true;
             }
         }
         false
@@ -185,10 +181,9 @@ impl Action {
                 kind,
                 name,
             } = d
+                && descriptor_kind == TypedDescriptorKind::Parameter
             {
-                if descriptor_kind == TypedDescriptorKind::Parameter {
-                    params.push((name.clone(), kind));
-                }
+                params.push((name.clone(), kind));
             }
         }
         params
@@ -205,10 +200,9 @@ impl Action {
                 kind,
                 name,
             } = d
+                && descriptor_kind == TypedDescriptorKind::Return
             {
-                if descriptor_kind == TypedDescriptorKind::Return {
-                    outputs.push((name.clone(), kind));
-                }
+                outputs.push((name.clone(), kind));
             }
         }
         outputs
@@ -260,6 +254,19 @@ impl AutomationFlow {
     #[must_use]
     pub fn version(&self) -> usize {
         self.version
+    }
+
+    /// Do any steps of this flow require a datafile to be loaded to run?
+    #[must_use]
+    pub fn needs_datafile_to_run(&self) -> bool {
+        for step in &self.actions {
+            for src in step.parameter_sources.values() {
+                if matches!(src, ActionParameterSource::FromSpreadsheetColumn(_)) {
+                    return true;
+                }
+            }
+        }
+        false
     }
 }
 
@@ -404,8 +411,10 @@ impl ActionConfiguration {
                                 ParameterKind::Integer => {
                                     let maybe_int = lua.coerce_integer(arg)?;
                                     if let Some(i) = maybe_int {
-                                        param_map
-                                            .insert(param_id.clone(), ParameterValue::Integer(i));
+                                        param_map.insert(
+                                            param_id.clone(),
+                                            ParameterValue::Integer(i.try_into().unwrap()),
+                                        );
                                     } else {
                                         return Err(mlua::Error::external(
                                             FlowError::InstructionCalledWithInvalidParamType,
@@ -454,7 +463,7 @@ impl ActionConfiguration {
                                         }
                                         ParameterValue::Integer(i) => {
                                             tracing::debug!("Integer {i} returned to Lua");
-                                            outputs.push(mlua::Value::Integer(i));
+                                            outputs.push(mlua::Value::Integer(i.into()));
                                         }
                                         ParameterValue::Decimal(n) => {
                                             tracing::debug!("Decimal {n} returned to Lua");
@@ -499,7 +508,9 @@ impl ActionConfiguration {
                         )
                     })?,
                 )),
-                ParameterValue::Integer(i) => params.push(mlua::Value::Integer(i)),
+                ParameterValue::Integer(i) => {
+                    params.push(mlua::Value::Integer(i.into()));
+                }
                 ParameterValue::Decimal(n) => params.push(mlua::Value::Number(n)),
             }
         }
@@ -540,7 +551,7 @@ impl ActionConfiguration {
             let ta_out = match out {
                 mlua::Value::Boolean(b) => ParameterValue::Boolean(b),
                 mlua::Value::String(s) => ParameterValue::String(s.to_str().unwrap().to_owned()),
-                mlua::Value::Integer(i) => ParameterValue::Integer(i),
+                mlua::Value::Integer(i) => ParameterValue::Integer(i.try_into().unwrap()),
                 mlua::Value::Number(n) => ParameterValue::Decimal(n),
                 _ => {
                     return Err((

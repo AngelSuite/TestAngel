@@ -20,6 +20,7 @@ pub struct FlowsHeader {
     flow_open: bool,
     search_results: FactoryVecDeque<AddStepResult>,
     generic_sender: Option<Sender<HeaderBarInput>>,
+    has_steps_requiring_data: bool,
 }
 
 #[derive(Debug)]
@@ -49,6 +50,8 @@ pub enum FlowsHeaderInput {
     PleaseOutput(FlowsHeaderOutput),
     /// Provide this actions header with a sender to update the generic header bar
     SetGenericHeaderBarSender(Sender<HeaderBarInput>),
+    /// Update the header, telling it if any steps in this flow require data
+    HasStepsRequiringData(bool),
 }
 
 #[relm4::component(pub)]
@@ -103,26 +106,29 @@ impl Component for FlowsHeader {
                     },
                 },
             },
-            gtk::Button {
-                set_icon_name: relm4_icons::icon_names::PLAY,
-                set_tooltip: &lang::lookup("flow-header-run"),
-                #[watch]
-                set_sensitive: model.flow_open,
-                connect_clicked[sender] => move |_| {
-                    // SAFETY: receivers will never be dropped
-                    sender.output(FlowsHeaderOutput::RunFlow).unwrap();
-                },
-            },
-            gtk::Button {
-                set_icon_name: relm4_icons::icon_names::PLAY_TABLE,
-                set_tooltip: &lang::lookup("flow-header-run-with-data"),
-                #[watch]
-                set_sensitive: model.flow_open,
-                connect_clicked[sender] => move |_| {
-                    // SAFETY: receivers will never be dropped
-                    sender.output(FlowsHeaderOutput::RunFlowWithData).unwrap();
-                },
-            },
+            if model.has_steps_requiring_data {
+                gtk::Button {
+                    set_icon_name: relm4_icons::icon_names::PLAY_TABLE,
+                    set_tooltip: &lang::lookup("flow-header-run-with-data"),
+                    #[watch]
+                    set_sensitive: model.flow_open,
+                    connect_clicked[sender] => move |_| {
+                        // SAFETY: receivers will never be dropped
+                        sender.output(FlowsHeaderOutput::RunFlowWithData).unwrap();
+                    },
+                }
+            } else {
+                gtk::Button {
+                    set_icon_name: relm4_icons::icon_names::PLAY,
+                    set_tooltip: &lang::lookup("flow-header-run"),
+                    #[watch]
+                    set_sensitive: model.flow_open,
+                    connect_clicked[sender] => move |_| {
+                        // SAFETY: receivers will never be dropped
+                        sender.output(FlowsHeaderOutput::RunFlow).unwrap();
+                    },
+                }
+            }
         },
     }
 
@@ -139,6 +145,7 @@ impl Component for FlowsHeader {
                 .launch(gtk::Box::default())
                 .forward(sender.input_sender(), FlowsHeaderInput::AddStep),
             generic_sender: None,
+            has_steps_requiring_data: false,
         };
         // Reset search results
         sender.input(FlowsHeaderInput::SearchForSteps(String::new()));
@@ -160,6 +167,9 @@ impl Component for FlowsHeader {
         match message {
             FlowsHeaderInput::PleaseOutput(output) => {
                 let _ = sender.output(output);
+            }
+            FlowsHeaderInput::HasStepsRequiringData(has_steps_requiring_data) => {
+                self.has_steps_requiring_data = has_steps_requiring_data;
             }
             FlowsHeaderInput::ChangeFlowOpen(now) => {
                 self.flow_open = now;
@@ -234,8 +244,8 @@ impl Component for FlowsHeader {
                     let matcher = SkimMatcherV2::default();
                     for (group, actions) in self.action_map.get_by_group() {
                         for action in actions {
-                            if !action.hide_in_flow_editor() {
-                                if let Some(score) = matcher.fuzzy_match(
+                            if !action.hide_in_flow_editor()
+                                && let Some(score) = matcher.fuzzy_match(
                                     &format!(
                                         "{group}: {}",
                                         action
@@ -244,9 +254,9 @@ impl Component for FlowsHeader {
                                     )
                                     .to_ascii_lowercase(),
                                     &query.to_ascii_lowercase(),
-                                ) {
-                                    unsorted_results.push((score, action));
-                                }
+                                )
+                            {
+                                unsorted_results.push((score, action));
                             }
                         }
                     }

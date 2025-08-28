@@ -2,7 +2,7 @@
 name = "testangel-engine"
 authors = ["Lily Hopkins <lily@hpkns.uk>"]
 description = "A engine interface for testangel."
-version = "1.0.0"
+version = "1.1.0"
 edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -10,6 +10,6 @@ edition.workspace = true
 [dependencies]
 testangel-ipc = { path = "../testangel-ipc" }
 testangel-engine-macros = { path = "../testangel-engine-macros" }
-dynamic-plugin = { version = "0.6.0", features = [ "host", "client" ] }
+dynamic-plugin = { version = "0.7.0", features = [ "host", "client" ] }
 lazy_static = "1.5.0"
 getset = "0.1.5"

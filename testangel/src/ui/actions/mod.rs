@@ -603,10 +603,8 @@ impl Component for ActionsModel {
             }
             ActionInputs::SaveActionThen__(new_id, path, then) => {
                 self.open_path = Some(path.with_extension("taaction"));
-                if new_id {
-                    if let Some(action) = &mut self.open_action {
-                        action.id = uuid::Uuid::new_v4().to_string();
-                    }
+                if new_id && let Some(action) = &mut self.open_action {
+                    action.id = uuid::Uuid::new_v4().to_string();
                 }
                 if let Err(e) = self.save_action(&sender) {
                     create_message_dialog(

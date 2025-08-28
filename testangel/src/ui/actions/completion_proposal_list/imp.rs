@@ -8,7 +8,7 @@ pub struct CompletionProposalListModel {
     pub(super) inner: RefCell<Vec<CompletionProposal>>,
 }
 
-/// Basic declaration of our type for the GObject type system
+/// Basic declaration of our type for the `GObject` type system
 #[glib::object_subclass]
 impl ObjectSubclass for CompletionProposalListModel {
     const NAME: &'static str = "TestAngelCompletionProposalListModel";

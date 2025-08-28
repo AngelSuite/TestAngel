@@ -32,40 +32,40 @@ impl CompletionProviderImpl for CompletionProviderEngines {
         context: &sourceview5::CompletionContext,
         proposal: &sourceview5::CompletionProposal,
     ) {
-        if let Ok(proposal) = proposal.clone().downcast::<EngineCompletionProposal>() {
-            if let Some((mut start, mut end)) = context.bounds() {
-                let buffer = start.buffer();
-                let engine_lua_name = proposal.engine_lua_name();
-                let mut len_to_insert = engine_lua_name.len();
-                let mut end_mark = None;
+        if let Ok(proposal) = proposal.clone().downcast::<EngineCompletionProposal>()
+            && let Some((mut start, mut end)) = context.bounds()
+        {
+            let buffer = start.buffer();
+            let engine_lua_name = proposal.engine_lua_name();
+            let mut len_to_insert = engine_lua_name.len();
+            let mut end_mark = None;
 
-                // If the insertion cursor is within a word and the trailing
-                // characters of the word match the suffix of the proposal, then
-                // limit how much text we insert so that the word is completed
-                // properly.
-                if !end.ends_line() && !end.char().is_whitespace() && !end.ends_word() {
-                    let mut word_end = end;
-                    if word_end.forward_word_end() {
-                        let text = end.slice(&word_end).to_string();
+            // If the insertion cursor is within a word and the trailing
+            // characters of the word match the suffix of the proposal, then
+            // limit how much text we insert so that the word is completed
+            // properly.
+            if !end.ends_line() && !end.char().is_whitespace() && !end.ends_word() {
+                let mut word_end = end;
+                if word_end.forward_word_end() {
+                    let text = end.slice(&word_end).to_string();
 
-                        if engine_lua_name.ends_with(&text) {
-                            assert!(engine_lua_name.len() >= text.len());
-                            len_to_insert = engine_lua_name.len() - text.len();
-                            end_mark = Some(buffer.create_mark(None, &word_end, false));
-                        }
+                    if engine_lua_name.ends_with(&text) {
+                        assert!(engine_lua_name.len() >= text.len());
+                        len_to_insert = engine_lua_name.len() - text.len();
+                        end_mark = Some(buffer.create_mark(None, &word_end, false));
                     }
                 }
+            }
 
-                buffer.begin_user_action();
-                buffer.delete(&mut start, &mut end);
-                buffer.insert(&mut start, &engine_lua_name[0..len_to_insert]);
-                buffer.end_user_action();
+            buffer.begin_user_action();
+            buffer.delete(&mut start, &mut end);
+            buffer.insert(&mut start, &engine_lua_name[0..len_to_insert]);
+            buffer.end_user_action();
 
-                if let Some(end_mark) = end_mark {
-                    let new_end = buffer.iter_at_mark(&end_mark);
-                    buffer.select_range(&new_end, &new_end);
-                    buffer.delete_mark(&end_mark);
-                }
+            if let Some(end_mark) = end_mark {
+                let new_end = buffer.iter_at_mark(&end_mark);
+                buffer.select_range(&new_end, &new_end);
+                buffer.delete_mark(&end_mark);
             }
         }
     }
@@ -175,16 +175,16 @@ impl CompletionProviderImpl for CompletionProviderEngines {
             }
 
             list.sort(|prop1, prop2| {
-                if let Ok(prop1) = prop1.clone().downcast::<EngineCompletionProposal>() {
-                    if let Ok(prop2) = prop2.clone().downcast::<EngineCompletionProposal>() {
-                        // Sort by source first, then alphabetical
-                        return match prop1.source().cmp(&prop2.source()) {
-                            std::cmp::Ordering::Equal => {
-                                prop1.engine_lua_name().cmp(&prop2.engine_lua_name())
-                            }
-                            ord => ord,
-                        };
-                    }
+                if let Ok(prop1) = prop1.clone().downcast::<EngineCompletionProposal>()
+                    && let Ok(prop2) = prop2.clone().downcast::<EngineCompletionProposal>()
+                {
+                    // Sort by source first, then alphabetical
+                    return match prop1.source().cmp(&prop2.source()) {
+                        std::cmp::Ordering::Equal => {
+                            prop1.engine_lua_name().cmp(&prop2.engine_lua_name())
+                        }
+                        ord => ord,
+                    };
                 }
                 std::cmp::Ordering::Equal
             });

@@ -14,4 +14,6 @@ pub enum EvidenceContent {
     Textual(String),
     /// A PNG encoded image encoded as a base64 string.
     ImageAsPngBase64(String),
+    /// HTTP evidence
+    HttpRequestResponse(String, String),
 }

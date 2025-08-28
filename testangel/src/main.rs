@@ -45,6 +45,13 @@ fn main() {
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("failed to initialise logger");
 
+    // Set up panic hook to tracing
+    let prev_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |panic_info| {
+        tracing_panic::panic_hook(panic_info);
+        prev_hook(panic_info);
+    }));
+
     tracing::info!("Using locale: {}", ui::lang::initialise_i18n());
 
     if let Ok(rt) = runtime::Builder::new_current_thread().enable_all().build() {

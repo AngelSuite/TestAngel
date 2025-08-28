@@ -165,6 +165,8 @@ impl FlowsModel {
         self.header.emit(header::FlowsHeaderInput::ChangeFlowOpen(
             self.open_flow.is_some(),
         ));
+        self.header
+            .emit(header::FlowsHeaderInput::HasStepsRequiringData(false));
     }
 
     /// Open a flow. This does not ask to save first.
@@ -203,6 +205,10 @@ impl FlowsModel {
                 }
             }
         }
+        self.header
+            .emit(header::FlowsHeaderInput::HasStepsRequiringData(
+                flow.needs_datafile_to_run(),
+            ));
         self.open_flow = Some(flow);
         self.header.emit(header::FlowsHeaderInput::ChangeFlowOpen(
             self.open_flow.is_some(),
@@ -447,24 +453,23 @@ impl Component for FlowsModel {
                                     {
                                         let (_name, kind) = &action.parameters()[*p_id];
                                         // Check that parameter from step->output is of type kind
-                                        if let Some(other_ac) = actions_clone.get(*other_step) {
-                                            if let Some(other_action) = &self
+                                        if let Some(other_ac) = actions_clone.get(*other_step)
+                                            && let Some(other_action) = &self
                                                 .action_map
                                                 .get_action_by_id(&other_ac.action_id)
+                                        {
+                                            if let Some((_name, other_output_kind)) =
+                                                other_action.outputs().get(*output)
                                             {
-                                                if let Some((_name, other_output_kind)) =
-                                                    other_action.outputs().get(*output)
-                                                {
-                                                    if kind != other_output_kind {
-                                                        // Reset to literal
-                                                        steps_reset.push(step);
-                                                        *src = ActionParameterSource::Literal;
-                                                    }
-                                                } else {
-                                                    // Step output no longer exists
+                                                if kind != other_output_kind {
+                                                    // Reset to literal
                                                     steps_reset.push(step);
                                                     *src = ActionParameterSource::Literal;
                                                 }
+                                            } else {
+                                                // Step output no longer exists
+                                                steps_reset.push(step);
+                                                *src = ActionParameterSource::Literal;
                                             }
                                         }
                                         // If any of these if's fail, then the main loop will catch and fail later.
@@ -500,6 +505,10 @@ impl Component for FlowsModel {
                 // SAFETY: config updates can't happen if nothing is open
                 let flow = self.open_flow.as_mut().unwrap();
                 flow.actions[step.current_index()] = new_config;
+                self.header
+                    .emit(header::FlowsHeaderInput::HasStepsRequiringData(
+                        flow.needs_datafile_to_run(),
+                    ));
                 self.set_needs_saving(true, &sender);
             }
             FlowInputs::NewFlow => {
@@ -698,6 +707,10 @@ impl Component for FlowsModel {
                 let mut live_list = self.live_actions_list.guard();
                 live_list.clear();
                 if let Some(flow) = &self.open_flow {
+                    self.header
+                        .emit(header::FlowsHeaderInput::HasStepsRequiringData(
+                            flow.needs_datafile_to_run(),
+                        ));
                     let mut possible_outputs = vec![];
                     for (step, config) in flow.actions.iter().enumerate() {
                         live_list.push_back(action_component::ActionComponentInitialiser {
@@ -800,10 +813,10 @@ impl Component for FlowsModel {
 
                 // Adjust step just about to paste
                 for source in config.parameter_sources.values_mut() {
-                    if let ActionParameterSource::FromOutput(from_step, _output_idx) = source {
-                        if *from_step <= idx {
-                            *source = ActionParameterSource::Literal;
-                        }
+                    if let ActionParameterSource::FromOutput(from_step, _output_idx) = source
+                        && *from_step <= idx
+                    {
+                        *source = ActionParameterSource::Literal;
                     }
                 }
 

@@ -18,7 +18,7 @@ pub fn parse_as_kv_attr(attr_name: &'static str, attr: &Attribute) -> Option<KVA
                         format!(r#"Usage: #[{attr_name}(name = "Demo")]"#)
                     );
                 }
-            };
+            }
 
             if let Ok(vars) = meta.parse_args() {
                 return Some(vars);

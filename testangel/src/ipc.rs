@@ -90,7 +90,7 @@ pub unsafe fn ipc_call(engine: &Engine, request: &Request) -> Result<Response, I
                 let mut raw_instructions: *mut *const ta_instruction_metadata =
                     std::ptr::null_mut();
 
-                lib.ta_request_instructions(&mut engine_meta, &mut raw_instructions)
+                lib.ta_request_instructions(&raw mut engine_meta, &raw mut raw_instructions)
                     .map_err(|_| IpcError::EngineNotCompliant)?;
 
                 if engine_meta.szFriendlyName.is_null() {
@@ -126,7 +126,7 @@ pub unsafe fn ipc_call(engine: &Engine, request: &Request) -> Result<Response, I
                         str_slice.to_owned()
                     }
                 };
-                lib.ta_free_engine_metadata(&engine_meta)
+                lib.ta_free_engine_metadata(&raw const engine_meta)
                     .map_err(|_| IpcError::EngineNotCompliant)?;
 
                 let mut i = 0;
@@ -247,8 +247,8 @@ pub unsafe fn ipc_call(engine: &Engine, request: &Request) -> Result<Response, I
                                 arp_parameter_list,
                                 inst_with_params.parameters.len().try_into().unwrap(),
                                 inst_with_params.dry_run,
-                                &mut parp_output_list,
-                                &mut parp_output_evidence_list,
+                                &raw mut parp_output_list,
+                                &raw mut parp_output_evidence_list,
                             )
                             .map_err(|_| IpcError::EngineNotCompliant)?;
 
@@ -383,6 +383,19 @@ pub unsafe fn ipc_call(engine: &Engine, request: &Request) -> Result<Response, I
                                             str_slice.to_owned()
                                         };
                                         EvidenceContent::ImageAsPngBase64(text)
+                                    }
+                                    ta_evidence_kind::TA_EVIDENCE_HTTPREQRES => {
+                                        let text = {
+                                            let cstr = CStr::from_ptr((*output_evidence).value);
+                                            let str_slice = cstr
+                                                .to_str()
+                                                .map_err(|_| IpcError::EngineNotCompliant)?;
+                                            str_slice.to_owned()
+                                        };
+                                        let mut splits = text.splitn(2, '\x1e');
+                                        let req = splits.next().unwrap().to_string();
+                                        let res = splits.next().unwrap().to_string();
+                                        EvidenceContent::HttpRequestResponse(req, res)
                                     }
                                 },
                             });
@@ -546,90 +559,90 @@ fn search_engine_dir<P: AsRef<Path>>(
     for path in fs::read_dir(engine_dir).unwrap() {
         let path = path.unwrap();
         let basename = path.file_name();
-        if let Ok(meta) = path.metadata() {
-            if meta.is_dir() {
-                // Search subdir
-                search_engine_dir(
-                    path.path()
-                        .canonicalize()
-                        .unwrap()
-                        .as_os_str()
-                        .to_os_string()
-                        .into_string()
-                        .unwrap(),
-                    engines,
-                    lua_names,
-                );
-                continue;
-            }
+        if let Ok(meta) = path.metadata()
+            && meta.is_dir()
+        {
+            // Search subdir
+            search_engine_dir(
+                path.path()
+                    .canonicalize()
+                    .unwrap()
+                    .as_os_str()
+                    .to_os_string()
+                    .into_string()
+                    .unwrap(),
+                engines,
+                lua_names,
+            );
+            continue;
         }
 
-        if let Ok(str) = basename.into_string() {
-            if Path::new(&str).extension().is_some_and(|ext| {
+        if let Ok(str) = basename.into_string()
+            && Path::new(&str).extension().is_some_and(|ext| {
                 ext.eq_ignore_ascii_case("so")
                     || ext.eq_ignore_ascii_case("dll")
                     || ext.eq_ignore_ascii_case("dylib")
-            }) {
-                tracing::debug!("Detected possible engine {str}");
-                match EngineInterface::load_plugin(path.path(), false) {
-                    Ok(lib) => {
-                        let mut engine = Engine {
-                            name: String::from("newly discovered engine"),
-                            path: path.path(),
-                            lib: Some(Arc::new(lib)),
-                            ..Default::default()
-                        };
+            })
+        {
+            tracing::debug!("Detected possible engine {str}");
+            match EngineInterface::load_plugin(path.path(), false) {
+                Ok(lib) => {
+                    let mut engine = Engine {
+                        name: String::from("newly discovered engine"),
+                        path: path.path(),
+                        lib: Some(Arc::new(lib)),
+                        ..Default::default()
+                    };
 
-                        if let Some(lib) = &engine.lib {
-                            if let Err(e) = lib.ta_register_logger(log_fn) {
-                                tracing::warn!("Failed to register logger with engine: {e}");
-                            }
-                        }
-
-                        match unsafe { ipc_call(&engine, &Request::Instructions) } {
-                            Ok(res) => {
-                                if let Response::Instructions {
-                                    friendly_name,
-                                    engine_version,
-                                    engine_lua_name,
-                                    description,
-                                    ipc_version,
-                                    instructions,
-                                } = res
-                                {
-                                    if ipc_version == 3 {
-                                        if lua_names.contains(&engine_lua_name) {
-                                            tracing::warn!(
-                                                "Engine {friendly_name} (v{engine_version}) at {:?} uses a lua name that is already used by another engine!",
-                                                path.path()
-                                            );
-                                            continue;
-                                        }
-                                        tracing::info!(
-                                            "Discovered engine {friendly_name} (v{engine_version}) at {:?}",
-                                            path.path()
-                                        );
-                                        engine.name.clone_from(&friendly_name);
-                                        engine.lua_name.clone_from(&engine_lua_name);
-                                        engine.description.clone_from(&description);
-                                        engine.instructions = instructions;
-                                        engines.push(engine);
-                                        lua_names.push(engine_lua_name);
-                                    } else {
-                                        tracing::warn!(
-                                            "Engine {friendly_name} (v{engine_version}) at {:?} doesn't speak the right IPC version!",
-                                            path.path()
-                                        );
-                                    }
-                                } else {
-                                    tracing::error!("Invalid response from engine {str}");
-                                }
-                            }
-                            Err(e) => tracing::warn!("IPC error: {e:?}"),
-                        }
+                    if let Some(lib) = &engine.lib
+                        && let Err(e) = lib.ta_register_logger(log_fn)
+                    {
+                        tracing::warn!("Failed to register logger with engine: {e}");
                     }
-                    Err(e) => tracing::warn!("Failed to load engine {str}: {e}"),
+
+                    match unsafe { ipc_call(&engine, &Request::Instructions) } {
+                        Ok(res) => {
+                            if let Response::Instructions {
+                                friendly_name,
+                                engine_version,
+                                engine_lua_name,
+                                description,
+                                ipc_version,
+                                instructions,
+                            } = res
+                            {
+                                if ipc_version == 3 {
+                                    if lua_names.contains(&engine_lua_name) {
+                                        tracing::warn!(
+                                            "Engine {friendly_name} (v{engine_version}) at {:?} uses a lua name that is already used by another engine!",
+                                            path.path()
+                                        );
+                                        continue;
+                                    }
+                                    tracing::info!(
+                                        "Discovered engine {friendly_name} (v{engine_version}) at {:?}",
+                                        path.path()
+                                    );
+                                    engine.name.clone_from(&friendly_name);
+                                    engine.lua_name.clone_from(&engine_lua_name);
+                                    engine.description.clone_from(&description);
+                                    engine.instructions = instructions;
+                                    engines.push(engine);
+                                    lua_names.push(engine_lua_name);
+                                } else {
+                                    tracing::warn!(
+                                        "Engine {friendly_name} (v{engine_version}) at {:?} doesn't speak the right IPC version!",
+                                        path.path()
+                                    );
+                                }
+                            } else {
+                                tracing::error!("Invalid response from engine {str}");
+                            }
+                        }
+                        Err(e) => tracing::warn!("IPC error: {e:?}"),
+                    }
                 }
+                Err(e) => tracing::warn!("Failed to load engine {str}: {e}"),
             }
         }
     }
