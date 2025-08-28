@@ -4,7 +4,7 @@ use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 use clap::{Parser, arg};
-use evidenceangel::{Author, EvidencePackage};
+use evp::{Author, EvidencePackage};
 use testangel::{
     action_loader, data_spreadsheet::load_data_spreadsheet, ipc, types::AutomationFlow,
 };
@@ -121,22 +121,28 @@ fn run_flow(
     evidence
 }
 
-fn add_evidence(evp: &mut EvidencePackage, evidence: Vec<Evidence>) -> evidenceangel::Result<()> {
+fn add_evidence(evp: &mut EvidencePackage, evidence: Vec<Evidence>) -> evp::Result<()> {
     let tc = evp.create_test_case("TestAngel Test Case")?;
     let tc_evidence = tc.evidence_mut();
     for ev in evidence {
         let Evidence { label, content } = ev;
         let mut ea_ev = match content {
-            EvidenceContent::Textual(text) => evidenceangel::Evidence::new(
-                evidenceangel::EvidenceKind::Text,
-                evidenceangel::EvidenceData::Text { content: text },
+            EvidenceContent::Textual(text) => evp::Evidence::new(
+                evp::EvidenceKind::Text,
+                evp::EvidenceData::Text { content: text },
             ),
-            EvidenceContent::ImageAsPngBase64(base64) => evidenceangel::Evidence::new(
-                evidenceangel::EvidenceKind::Image,
-                evidenceangel::EvidenceData::Base64 {
+            EvidenceContent::ImageAsPngBase64(base64) => evp::Evidence::new(
+                evp::EvidenceKind::Image,
+                evp::EvidenceData::Base64 {
                     data: BASE64_STANDARD
                         .decode(base64)
-                        .map_err(|e| evidenceangel::Error::OtherExportError(Box::new(e)))?,
+                        .map_err(|e| evp::Error::OtherExportError(Box::new(e)))?,
+                },
+            ),
+            EvidenceContent::HttpRequestResponse(req, res) => evp::Evidence::new(
+                evp::EvidenceKind::Http,
+                evp::EvidenceData::Base64 {
+                    data: format!("{req}\x1e{res}").into_bytes(),
                 },
             ),
         };

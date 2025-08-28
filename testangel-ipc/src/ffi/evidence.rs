@@ -12,4 +12,5 @@ pub struct ta_evidence {
 pub enum ta_evidence_kind {
     TA_EVIDENCE_TEXTUAL = 0,
     TA_EVIDENCE_PNGBASE64 = 1,
+    TA_EVIDENCE_HTTPREQRES = 2,
 }

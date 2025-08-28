@@ -494,6 +494,7 @@ pub fn engine(stream: TokenStream) -> TokenStream {
                         (*evidence).kind = match &ev.content {
                             EvidenceContent::Textual(_) => ta_evidence_kind::TA_EVIDENCE_TEXTUAL,
                             EvidenceContent::ImageAsPngBase64(_) => ta_evidence_kind::TA_EVIDENCE_PNGBASE64,
+                            EvidenceContent::HttpRequestResponse(_, _) => ta_evidence_kind::TA_EVIDENCE_HTTPREQRES,
                         };
 
                         match &ev.content {
@@ -501,6 +502,11 @@ pub fn engine(stream: TokenStream) -> TokenStream {
                                 let data = CString::new(txt.as_str()).unwrap();
                                 (*evidence).value = data.into_raw();
                             },
+                            EvidenceContent::HttpRequestResponse(req, res) => {
+                                let data = format!("{req}\x1e{res}");
+                                let data = CString::new(data.as_str()).unwrap();
+                                (*evidence).value = data.into_raw();
+                            }
                         }
 
                         *evidence_array.add(idx) = evidence;

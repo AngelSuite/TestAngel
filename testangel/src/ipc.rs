@@ -384,6 +384,19 @@ pub unsafe fn ipc_call(engine: &Engine, request: &Request) -> Result<Response, I
                                         };
                                         EvidenceContent::ImageAsPngBase64(text)
                                     }
+                                    ta_evidence_kind::TA_EVIDENCE_HTTPREQRES => {
+                                        let text = {
+                                            let cstr = CStr::from_ptr((*output_evidence).value);
+                                            let str_slice = cstr
+                                                .to_str()
+                                                .map_err(|_| IpcError::EngineNotCompliant)?;
+                                            str_slice.to_owned()
+                                        };
+                                        let mut splits = text.splitn(2, '\x1e');
+                                        let req = splits.next().unwrap().to_string();
+                                        let res = splits.next().unwrap().to_string();
+                                        EvidenceContent::HttpRequestResponse(req, res)
+                                    }
                                 },
                             });
 
