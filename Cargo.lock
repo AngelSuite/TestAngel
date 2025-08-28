@@ -4029,7 +4029,7 @@ dependencies = [
 
 [[package]]
 name = "testangel"
-version = "1.0.0-alpha.3"
+version = "1.0.0-alpha.4"
 dependencies = [
  "base64",
  "chrono",
@@ -4092,7 +4092,7 @@ dependencies = [
 
 [[package]]
 name = "testangel-evidence"
-version = "1.0.0-alpha.3"
+version = "1.0.0-alpha.4"
 dependencies = [
  "dynamic-plugin",
  "testangel-engine",
@@ -4111,7 +4111,7 @@ dependencies = [
 
 [[package]]
 name = "testangel-rand"
-version = "1.0.0-alpha.3"
+version = "1.0.0-alpha.4"
 dependencies = [
  "dynamic-plugin",
  "rand",
@@ -4122,7 +4122,7 @@ dependencies = [
 
 [[package]]
 name = "testangel-time"
-version = "1.0.0-alpha.3"
+version = "1.0.0-alpha.4"
 dependencies = [
  "dynamic-plugin",
  "testangel-engine",
@@ -4131,7 +4131,7 @@ dependencies = [
 
 [[package]]
 name = "testangel-user-interaction"
-version = "1.0.0-alpha.3"
+version = "1.0.0-alpha.4"
 dependencies = [
  "dynamic-plugin",
  "rfd",
