@@ -52,7 +52,7 @@ mlua = { version = "0.11.2", features = [ "luau" ] }
 pest = "2.7.9"
 pest_derive = "2.7.9"
 convert_case = "0.8.0"
-evp = "1.0.0-beta.1"
+evp = "1.0.0-beta.2"
 tracing = "0.1.41"
 tracing-panic = { version = "0.1.2", optional = true }
 tracing-subscriber = { version = "0.3.19", optional = true }
