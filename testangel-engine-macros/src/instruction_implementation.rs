@@ -143,24 +143,25 @@ impl InstructionFn {
                 }
             } else if attr.path().is_ident("doc")
                 && let Meta::NameValue(name_val) = &attr.meta
-                    && let Expr::Lit(lit) = &name_val.value
-                        && let Lit::Str(s) = &lit.lit {
-                            let doc_line = s.value();
-                            let doc_line = doc_line.trim();
-                            if doc_line.is_empty() {
-                                description.push('\n');
-                            } else {
-                                if description
-                                    .chars()
-                                    .last()
-                                    .is_some_and(|c| !c.is_whitespace())
-                                {
-                                    description.push(' ');
-                                }
+                && let Expr::Lit(lit) = &name_val.value
+                && let Lit::Str(s) = &lit.lit
+            {
+                let doc_line = s.value();
+                let doc_line = doc_line.trim();
+                if doc_line.is_empty() {
+                    description.push('\n');
+                } else {
+                    if description
+                        .chars()
+                        .last()
+                        .is_some_and(|c| !c.is_whitespace())
+                    {
+                        description.push(' ');
+                    }
 
-                                description.push_str(doc_line);
-                            }
-                        }
+                    description.push_str(doc_line);
+                }
+            }
         }
 
         let mut param_expansions = vec![];
@@ -297,18 +298,16 @@ impl Parse for InstructionParameter {
 
         for attr in attrs {
             if attr.path().is_ident("arg")
-                && let Some(vars) = parse_as_kv_attr("arg", &attr) {
-                    for var in vars.vars {
-                        match var.key.to_string().as_str() {
-                            "id" => id = Some(var.value),
-                            "name" => friendly_name = Some(var.value),
-                            _ => emit_error!(
-                                var.key.span(),
-                                "Invalid key, expecting 'id' or 'name'."
-                            ),
-                        }
+                && let Some(vars) = parse_as_kv_attr("arg", &attr)
+            {
+                for var in vars.vars {
+                    match var.key.to_string().as_str() {
+                        "id" => id = Some(var.value),
+                        "name" => friendly_name = Some(var.value),
+                        _ => emit_error!(var.key.span(), "Invalid key, expecting 'id' or 'name'."),
                     }
                 }
+            }
         }
 
         let ident: Ident = input.parse()?;
@@ -359,18 +358,16 @@ impl Parse for InstructionReturn {
 
         if let Some(attr) = attrs.first()
             && attr.path().is_ident("output")
-                && let Some(vars) = parse_as_kv_attr("output", attr) {
-                    for var in vars.vars {
-                        match var.key.to_string().as_str() {
-                            "id" => id = Some(var.value),
-                            "name" => friendly_name = Some(var.value),
-                            _ => emit_error!(
-                                var.key.span(),
-                                "Invalid key, expecting 'id' or 'name'."
-                            ),
-                        }
-                    }
+            && let Some(vars) = parse_as_kv_attr("output", attr)
+        {
+            for var in vars.vars {
+                match var.key.to_string().as_str() {
+                    "id" => id = Some(var.value),
+                    "name" => friendly_name = Some(var.value),
+                    _ => emit_error!(var.key.span(), "Invalid key, expecting 'id' or 'name'."),
                 }
+            }
+        }
 
         if id.is_none() {
             abort_call_site!("Return types require an id");

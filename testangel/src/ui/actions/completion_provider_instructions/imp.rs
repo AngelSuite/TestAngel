@@ -36,75 +36,76 @@ impl CompletionProviderImpl for CompletionProviderEngineInstructions {
         if let Ok(proposal) = proposal
             .clone()
             .downcast::<EngineInstructionCompletionProposal>()
-            && let Some((mut start, mut end)) = context.bounds() {
-                let buffer = start.buffer();
-                let instruction_lua_name = proposal.instruction_lua_name();
-                let mut len_to_insert = instruction_lua_name.len();
+            && let Some((mut start, mut end)) = context.bounds()
+        {
+            let buffer = start.buffer();
+            let instruction_lua_name = proposal.instruction_lua_name();
+            let mut len_to_insert = instruction_lua_name.len();
 
-                // Move start iter to beginning of engine name
-                start.backward_word_start();
+            // Move start iter to beginning of engine name
+            start.backward_word_start();
 
-                // Determine if we should add `local _ =`
-                let mut start_of_line = start;
-                while !start_of_line.starts_line() {
-                    start_of_line.backward_char();
-                }
-                let need_to_create_variable = buffer
-                    .slice(&start_of_line, &start, false)
-                    .to_string()
-                    .trim()
-                    .is_empty();
+            // Determine if we should add `local _ =`
+            let mut start_of_line = start;
+            while !start_of_line.starts_line() {
+                start_of_line.backward_char();
+            }
+            let need_to_create_variable = buffer
+                .slice(&start_of_line, &start, false)
+                .to_string()
+                .trim()
+                .is_empty();
 
-                // If the insertion cursor is within a word and the trailing
-                // characters of the word match the suffix of the proposal, then
-                // limit how much text we insert so that the word is completed
-                // properly.
-                if !end.ends_line() && !end.char().is_whitespace() && !end.ends_word() {
-                    let mut word_end = end;
-                    if word_end.forward_word_end() {
-                        let text = end.slice(&word_end).to_string();
+            // If the insertion cursor is within a word and the trailing
+            // characters of the word match the suffix of the proposal, then
+            // limit how much text we insert so that the word is completed
+            // properly.
+            if !end.ends_line() && !end.char().is_whitespace() && !end.ends_word() {
+                let mut word_end = end;
+                if word_end.forward_word_end() {
+                    let text = end.slice(&word_end).to_string();
 
-                        if instruction_lua_name.ends_with(&text) {
-                            assert!(instruction_lua_name.len() >= text.len());
-                            len_to_insert = instruction_lua_name.len() - text.len();
-                        }
+                    if instruction_lua_name.ends_with(&text) {
+                        assert!(instruction_lua_name.len() >= text.len());
+                        len_to_insert = instruction_lua_name.len() - text.len();
                     }
                 }
-
-                buffer.begin_user_action();
-                buffer.delete(&mut start, &mut end);
-
-                let param_list = proposal.parameters().join(", ");
-                let insertion_text = format!(
-                    "{}{}.{}({})",
-                    if need_to_create_variable && !proposal.returns().is_empty() {
-                        format!("local {} = ", proposal.returns().join(", "),)
-                    } else {
-                        String::new()
-                    },
-                    proposal.engine_lua_name(),
-                    &instruction_lua_name[0..len_to_insert],
-                    param_list,
-                );
-                buffer.insert(&mut start, &insertion_text);
-                buffer.end_user_action();
-
-                // Focus first parameter if needed
-                if !proposal.parameters().is_empty() {
-                    // At this point, `start` is actually *after* the newly inserted text.
-                    let mut start_of_params = start;
-
-                    // Move cursor back by param_list + 1
-                    start_of_params.backward_chars(i32::try_from(param_list.len()).unwrap() + 1);
-
-                    // Select region from insert_end to (insert_end + len(first param))
-                    let mut after_first_param = start_of_params;
-                    after_first_param.forward_chars(
-                        i32::try_from(proposal.parameters().first().unwrap().len()).unwrap(),
-                    );
-                    buffer.select_range(&start_of_params, &after_first_param);
-                }
             }
+
+            buffer.begin_user_action();
+            buffer.delete(&mut start, &mut end);
+
+            let param_list = proposal.parameters().join(", ");
+            let insertion_text = format!(
+                "{}{}.{}({})",
+                if need_to_create_variable && !proposal.returns().is_empty() {
+                    format!("local {} = ", proposal.returns().join(", "),)
+                } else {
+                    String::new()
+                },
+                proposal.engine_lua_name(),
+                &instruction_lua_name[0..len_to_insert],
+                param_list,
+            );
+            buffer.insert(&mut start, &insertion_text);
+            buffer.end_user_action();
+
+            // Focus first parameter if needed
+            if !proposal.parameters().is_empty() {
+                // At this point, `start` is actually *after* the newly inserted text.
+                let mut start_of_params = start;
+
+                // Move cursor back by param_list + 1
+                start_of_params.backward_chars(i32::try_from(param_list.len()).unwrap() + 1);
+
+                // Select region from insert_end to (insert_end + len(first param))
+                let mut after_first_param = start_of_params;
+                after_first_param.forward_chars(
+                    i32::try_from(proposal.parameters().first().unwrap().len()).unwrap(),
+                );
+                buffer.select_range(&start_of_params, &after_first_param);
+            }
+        }
     }
 
     fn display(
@@ -284,15 +285,15 @@ impl CompletionProviderImpl for CompletionProviderEngineInstructions {
                     && let Ok(prop2) = prop2
                         .clone()
                         .downcast::<EngineInstructionCompletionProposal>()
-                    {
-                        // Sort by source first, then alphabetical
-                        return match prop1.source().cmp(&prop2.source()) {
-                            std::cmp::Ordering::Equal => prop1
-                                .instruction_lua_name()
-                                .cmp(&prop2.instruction_lua_name()),
-                            ord => ord,
-                        };
-                    }
+                {
+                    // Sort by source first, then alphabetical
+                    return match prop1.source().cmp(&prop2.source()) {
+                        std::cmp::Ordering::Equal => prop1
+                            .instruction_lua_name()
+                            .cmp(&prop2.instruction_lua_name()),
+                        ord => ord,
+                    };
+                }
                 std::cmp::Ordering::Equal
             });
             Ok(list.upcast::<ListModel>())

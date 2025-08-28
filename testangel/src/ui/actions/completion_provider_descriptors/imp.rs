@@ -27,40 +27,41 @@ impl CompletionProviderImpl for CompletionProviderDescriptors {
         proposal: &sourceview5::CompletionProposal,
     ) {
         if let Ok(proposal) = proposal.clone().downcast::<DescriptorCompletionProposal>()
-            && let Some((mut start, mut end)) = context.bounds() {
-                let buffer = start.buffer();
-                let descriptor = proposal.descriptor();
-                let mut len_to_insert = descriptor.len();
-                let mut end_mark = None;
+            && let Some((mut start, mut end)) = context.bounds()
+        {
+            let buffer = start.buffer();
+            let descriptor = proposal.descriptor();
+            let mut len_to_insert = descriptor.len();
+            let mut end_mark = None;
 
-                // If the insertion cursor is within a word and the trailing
-                // characters of the word match the suffix of the proposal, then
-                // limit how much text we insert so that the word is completed
-                // properly.
-                if !end.ends_line() && !end.char().is_whitespace() && !end.ends_word() {
-                    let mut word_end = end;
-                    if word_end.forward_word_end() {
-                        let text = end.slice(&word_end).to_string();
+            // If the insertion cursor is within a word and the trailing
+            // characters of the word match the suffix of the proposal, then
+            // limit how much text we insert so that the word is completed
+            // properly.
+            if !end.ends_line() && !end.char().is_whitespace() && !end.ends_word() {
+                let mut word_end = end;
+                if word_end.forward_word_end() {
+                    let text = end.slice(&word_end).to_string();
 
-                        if descriptor.ends_with(&text) {
-                            assert!(descriptor.len() >= text.len());
-                            len_to_insert = descriptor.len() - text.len();
-                            end_mark = Some(buffer.create_mark(None, &word_end, false));
-                        }
+                    if descriptor.ends_with(&text) {
+                        assert!(descriptor.len() >= text.len());
+                        len_to_insert = descriptor.len() - text.len();
+                        end_mark = Some(buffer.create_mark(None, &word_end, false));
                     }
                 }
-
-                buffer.begin_user_action();
-                buffer.delete(&mut start, &mut end);
-                buffer.insert(&mut start, &descriptor[0..len_to_insert]);
-                buffer.end_user_action();
-
-                if let Some(end_mark) = end_mark {
-                    let new_end = buffer.iter_at_mark(&end_mark);
-                    buffer.select_range(&new_end, &new_end);
-                    buffer.delete_mark(&end_mark);
-                }
             }
+
+            buffer.begin_user_action();
+            buffer.delete(&mut start, &mut end);
+            buffer.insert(&mut start, &descriptor[0..len_to_insert]);
+            buffer.end_user_action();
+
+            if let Some(end_mark) = end_mark {
+                let new_end = buffer.iter_at_mark(&end_mark);
+                buffer.select_range(&new_end, &new_end);
+                buffer.delete_mark(&end_mark);
+            }
+        }
     }
 
     fn display(

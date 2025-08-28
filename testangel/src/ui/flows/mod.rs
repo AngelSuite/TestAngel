@@ -457,21 +457,21 @@ impl Component for FlowsModel {
                                             && let Some(other_action) = &self
                                                 .action_map
                                                 .get_action_by_id(&other_ac.action_id)
+                                        {
+                                            if let Some((_name, other_output_kind)) =
+                                                other_action.outputs().get(*output)
                                             {
-                                                if let Some((_name, other_output_kind)) =
-                                                    other_action.outputs().get(*output)
-                                                {
-                                                    if kind != other_output_kind {
-                                                        // Reset to literal
-                                                        steps_reset.push(step);
-                                                        *src = ActionParameterSource::Literal;
-                                                    }
-                                                } else {
-                                                    // Step output no longer exists
+                                                if kind != other_output_kind {
+                                                    // Reset to literal
                                                     steps_reset.push(step);
                                                     *src = ActionParameterSource::Literal;
                                                 }
+                                            } else {
+                                                // Step output no longer exists
+                                                steps_reset.push(step);
+                                                *src = ActionParameterSource::Literal;
                                             }
+                                        }
                                         // If any of these if's fail, then the main loop will catch and fail later.
                                     }
                                 }
@@ -814,9 +814,10 @@ impl Component for FlowsModel {
                 // Adjust step just about to paste
                 for source in config.parameter_sources.values_mut() {
                     if let ActionParameterSource::FromOutput(from_step, _output_idx) = source
-                        && *from_step <= idx {
-                            *source = ActionParameterSource::Literal;
-                        }
+                        && *from_step <= idx
+                    {
+                        *source = ActionParameterSource::Literal;
+                    }
                 }
 
                 tracing::info!("Pasting step to {}", idx + 1);

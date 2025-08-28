@@ -104,24 +104,25 @@ pub fn engine(stream: TokenStream) -> TokenStream {
             }
         } else if attr.path().is_ident("doc")
             && let Meta::NameValue(name_val) = &attr.meta
-                && let Expr::Lit(lit) = &name_val.value
-                    && let Lit::Str(s) = &lit.lit {
-                        let doc_line = s.value();
-                        let doc_line = doc_line.trim();
-                        if doc_line.is_empty() {
-                            description.push('\n');
-                        } else {
-                            if description
-                                .chars()
-                                .last()
-                                .is_some_and(|c| !c.is_whitespace())
-                            {
-                                description.push(' ');
-                            }
+            && let Expr::Lit(lit) = &name_val.value
+            && let Lit::Str(s) = &lit.lit
+        {
+            let doc_line = s.value();
+            let doc_line = doc_line.trim();
+            if doc_line.is_empty() {
+                description.push('\n');
+            } else {
+                if description
+                    .chars()
+                    .last()
+                    .is_some_and(|c| !c.is_whitespace())
+                {
+                    description.push(' ');
+                }
 
-                            description.push_str(doc_line);
-                        }
-                    }
+                description.push_str(doc_line);
+            }
+        }
     }
 
     // Remove engine attribute from output

@@ -254,9 +254,10 @@ impl Component for FlowsHeader {
                                     )
                                     .to_ascii_lowercase(),
                                     &query.to_ascii_lowercase(),
-                                ) {
-                                    unsorted_results.push((score, action));
-                                }
+                                )
+                            {
+                                unsorted_results.push((score, action));
+                            }
                         }
                     }
 
