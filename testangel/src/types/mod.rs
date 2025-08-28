@@ -261,6 +261,19 @@ impl AutomationFlow {
     pub fn version(&self) -> usize {
         self.version
     }
+
+    /// Do any steps of this flow require a datafile to be loaded to run?
+    #[must_use]
+    pub fn needs_datafile_to_run(&self) -> bool {
+        for step in &self.actions {
+            for src in step.parameter_sources.values() {
+                if matches!(src, ActionParameterSource::FromSpreadsheetColumn(_)) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
 }
 
 pub type ActionExecutionSuccess = (HashMap<usize, ParameterValue>, Vec<Evidence>);

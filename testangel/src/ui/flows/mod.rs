@@ -165,6 +165,7 @@ impl FlowsModel {
         self.header.emit(header::FlowsHeaderInput::ChangeFlowOpen(
             self.open_flow.is_some(),
         ));
+        self.header.emit(header::FlowsHeaderInput::HasStepsRequiringData(false));
     }
 
     /// Open a flow. This does not ask to save first.
@@ -203,6 +204,7 @@ impl FlowsModel {
                 }
             }
         }
+        self.header.emit(header::FlowsHeaderInput::HasStepsRequiringData(flow.needs_datafile_to_run()));
         self.open_flow = Some(flow);
         self.header.emit(header::FlowsHeaderInput::ChangeFlowOpen(
             self.open_flow.is_some(),
@@ -500,6 +502,7 @@ impl Component for FlowsModel {
                 // SAFETY: config updates can't happen if nothing is open
                 let flow = self.open_flow.as_mut().unwrap();
                 flow.actions[step.current_index()] = new_config;
+                self.header.emit(header::FlowsHeaderInput::HasStepsRequiringData(flow.needs_datafile_to_run()));
                 self.set_needs_saving(true, &sender);
             }
             FlowInputs::NewFlow => {
@@ -698,6 +701,7 @@ impl Component for FlowsModel {
                 let mut live_list = self.live_actions_list.guard();
                 live_list.clear();
                 if let Some(flow) = &self.open_flow {
+                    self.header.emit(header::FlowsHeaderInput::HasStepsRequiringData(flow.needs_datafile_to_run()));
                     let mut possible_outputs = vec![];
                     for (step, config) in flow.actions.iter().enumerate() {
                         live_list.push_back(action_component::ActionComponentInitialiser {
