@@ -361,7 +361,7 @@ impl Component for ActionsModel {
                 adw::StatusPage {
                     set_title: &lang::lookup("nothing-open"),
                     set_description: Some(&lang::lookup("action-nothing-open-description")),
-                    set_icon_name: Some(relm4_icons::icon_names::LIGHTBULB),
+                    set_icon_name: Some(crate::ui::icon_names::LIGHTBULB),
                     set_vexpand: true,
                 }
             } else {

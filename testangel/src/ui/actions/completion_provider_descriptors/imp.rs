@@ -73,7 +73,7 @@ impl CompletionProviderImpl for CompletionProviderDescriptors {
         if let Ok(proposal) = proposal.clone().downcast::<DescriptorCompletionProposal>() {
             match cell.column() {
                 sourceview5::CompletionColumn::Icon => {
-                    cell.set_icon_name(relm4_icons::icon_names::TAG);
+                    cell.set_icon_name(crate::ui::icon_names::TAG);
                 }
                 sourceview5::CompletionColumn::Before | sourceview5::CompletionColumn::After => {
                     cell.set_text(None);
