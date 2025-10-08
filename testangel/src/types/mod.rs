@@ -321,7 +321,7 @@ impl ActionConfiguration {
         for i in 0..action_parameters.len() {
             param_vec.push(action_parameters[&i].clone());
         }
-        Self::execute_directly(engine_map, &action, param_vec)
+        Self::execute_directly(engine_map, &action, &param_vec)
     }
 
     #[allow(clippy::type_complexity)]
@@ -338,7 +338,7 @@ impl ActionConfiguration {
     pub fn execute_directly(
         engine_map: &Arc<EngineList>,
         action: &Action,
-        action_parameters: Vec<ParameterValue>,
+        action_parameters: &[ParameterValue],
     ) -> Result<ActionExecutionSuccess, ActionExecutionFailure> {
         let mut output = HashMap::new();
 

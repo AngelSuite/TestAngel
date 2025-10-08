@@ -238,7 +238,7 @@ impl Component for ExecutionDialog {
                     .build();
 
                 let sender_c = sender.clone();
-                let execution_start_time = self.execution_start_time.clone();
+                let execution_start_time = self.execution_start_time;
                 dialog.save(
                     Some(root),
                     Some(&relm4::gtk::gio::Cancellable::new()),
