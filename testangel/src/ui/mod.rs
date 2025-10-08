@@ -20,11 +20,17 @@ mod flows;
 mod header_bar;
 pub(crate) mod lang;
 
+mod icon_names {
+    pub use custom::*;
+    pub use shipped::*;
+    include!(concat!(env!("OUT_DIR"), "/icon_names.rs"));
+}
+
 /// Initialise and open the UI.
 pub fn initialise_ui() {
     tracing::info!("Starting Next UI...");
     let app = RelmApp::new("uk.hpkns.testangel");
-    relm4_icons::initialize_icons();
+    relm4_icons::initialize_icons(icon_names::GRESOURCE_BYTES, icon_names::RESOURCE_PREFIX);
 
     let display = gtk::gdk::Display::default().unwrap();
     let theme = gtk::IconTheme::for_display(&display);
@@ -189,7 +195,7 @@ impl Component for AppModel {
             model.flows.widget(),
             Some("flows"),
             &lang::lookup("tab-flows"),
-            relm4_icons::icon_names::PAPYRUS_VERTICAL,
+            crate::ui::icon_names::PAPYRUS_VERTICAL,
         );
         if !std::env::var("TA_HIDE_ACTION_EDITOR")
             .unwrap_or("no".to_string())
@@ -199,7 +205,7 @@ impl Component for AppModel {
                 model.actions.widget(),
                 Some("actions"),
                 &lang::lookup("tab-actions"),
-                relm4_icons::icon_names::PUZZLE_PIECE,
+                crate::ui::icon_names::PUZZLE_PIECE,
             );
         }
 

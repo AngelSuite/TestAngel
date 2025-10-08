@@ -69,7 +69,7 @@ impl Component for FlowsHeader {
 
             #[local_ref]
             add_button -> gtk::MenuButton {
-                set_icon_name: relm4_icons::icon_names::PLUS,
+                set_icon_name: crate::ui::icon_names::PLUS,
                 set_tooltip: &lang::lookup("flow-header-add"),
 
                 #[wrap(Some)]
@@ -108,7 +108,7 @@ impl Component for FlowsHeader {
             },
             if model.has_steps_requiring_data {
                 gtk::Button {
-                    set_icon_name: relm4_icons::icon_names::PLAY_TABLE,
+                    set_icon_name: crate::ui::icon_names::PLAY_TABLE_SYMBOLIC,
                     set_tooltip: &lang::lookup("flow-header-run-with-data"),
                     #[watch]
                     set_sensitive: model.flow_open,
@@ -119,7 +119,7 @@ impl Component for FlowsHeader {
                 }
             } else {
                 gtk::Button {
-                    set_icon_name: relm4_icons::icon_names::PLAY,
+                    set_icon_name: crate::ui::icon_names::PLAY,
                     set_tooltip: &lang::lookup("flow-header-run"),
                     #[watch]
                     set_sensitive: model.flow_open,

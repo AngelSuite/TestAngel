@@ -115,7 +115,7 @@ impl FactoryComponent for ActionComponent {
                     set_spacing: 5,
 
                     gtk::Button::builder().css_classes(["flat"]).build() {
-                        set_icon_name: relm4_icons::icon_names::UP,
+                        set_icon_name: crate::ui::icon_names::UP,
                         set_tooltip: &lang::lookup("move-up"),
                         set_valign: gtk::Align::Start,
                         set_height_request: 30,
@@ -128,7 +128,7 @@ impl FactoryComponent for ActionComponent {
                         },
                     },
                     gtk::Button::builder().css_classes(["flat"]).build() {
-                        set_icon_name: relm4_icons::icon_names::DOWN,
+                        set_icon_name: crate::ui::icon_names::DOWN,
                         set_tooltip: &lang::lookup("move-down"),
                         set_valign: gtk::Align::Start,
                         set_height_request: 30,
@@ -139,7 +139,7 @@ impl FactoryComponent for ActionComponent {
                         },
                     },
                     gtk::Button::builder().css_classes(["flat"]).build() {
-                        set_icon_name: relm4_icons::icon_names::X_CIRCULAR,
+                        set_icon_name: crate::ui::icon_names::CROSS_SMALL_CIRCLE_FILLED,
                         set_tooltip: &lang::lookup("delete-step"),
                         set_valign: gtk::Align::Start,
                         set_height_request: 30,

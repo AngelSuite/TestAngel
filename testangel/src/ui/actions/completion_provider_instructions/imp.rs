@@ -120,7 +120,7 @@ impl CompletionProviderImpl for CompletionProviderEngineInstructions {
         {
             match cell.column() {
                 sourceview5::CompletionColumn::Icon => {
-                    cell.set_icon_name(relm4_icons::icon_names::PUZZLE_PIECE);
+                    cell.set_icon_name(crate::ui::icon_names::PUZZLE_PIECE);
                 }
                 sourceview5::CompletionColumn::Before => {
                     cell.set_text(Some(&format!("{}.", proposal.engine_lua_name())));

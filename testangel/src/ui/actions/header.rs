@@ -66,7 +66,7 @@ impl Component for ActionsHeader {
 
             #[local_ref]
             add_button -> gtk::MenuButton {
-                set_icon_name: relm4_icons::icon_names::PLUS,
+                set_icon_name: crate::ui::icon_names::PLUS,
                 set_tooltip: &lang::lookup("action-header-add"),
 
                 #[wrap(Some)]
@@ -105,7 +105,7 @@ impl Component for ActionsHeader {
             },
 
             gtk::Button {
-                set_icon_name: relm4_icons::icon_names::PAPYRUS_VERTICAL_ADD,
+                set_icon_name: crate::ui::icon_names::PAPYRUS_VERTICAL_ADD_SYMBOLIC,
                 set_tooltip: &lang::lookup("action-header-add-to-open-flow"),
                 #[watch]
                 set_sensitive: model.action_open,
