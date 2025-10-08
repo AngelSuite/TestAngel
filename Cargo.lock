@@ -3305,8 +3305,7 @@ dependencies = [
 [[package]]
 name = "relm4-icons-build"
 version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75f2de558afdd570680a69c96dc9f812b241922c6355dae351f7ffbb5fac675d"
+source = "git+https://github.com/lilopkins/relm4-icons.git#975402de25b8b5496a936675037bfac34f299fcb"
 dependencies = [
  "gvdb",
  "serde",
@@ -4068,7 +4067,7 @@ dependencies = [
 
 [[package]]
 name = "testangel"
-version = "1.0.0-alpha.6"
+version = "1.0.0-alpha.6a"
 dependencies = [
  "base64",
  "chrono",
@@ -4132,7 +4131,7 @@ dependencies = [
 
 [[package]]
 name = "testangel-evidence"
-version = "1.0.0-alpha.6"
+version = "1.0.0-alpha.6a"
 dependencies = [
  "dynamic-plugin",
  "testangel-engine",
@@ -4151,7 +4150,7 @@ dependencies = [
 
 [[package]]
 name = "testangel-rand"
-version = "1.0.0-alpha.6"
+version = "1.0.0-alpha.6a"
 dependencies = [
  "dynamic-plugin",
  "rand",
@@ -4162,7 +4161,7 @@ dependencies = [
 
 [[package]]
 name = "testangel-time"
-version = "1.0.0-alpha.6"
+version = "1.0.0-alpha.6a"
 dependencies = [
  "dynamic-plugin",
  "testangel-engine",
@@ -4171,7 +4170,7 @@ dependencies = [
 
 [[package]]
 name = "testangel-user-interaction"
-version = "1.0.0-alpha.6"
+version = "1.0.0-alpha.6a"
 dependencies = [
  "dynamic-plugin",
  "rfd",

@@ -65,7 +65,4 @@ winres = "0.1"
 ico-builder = "0.1"
 
 [build-dependencies]
-relm4-icons-build = "0.10.0"
-
-[patch.crates-io]
-relm4-icons-build = { git = "https://github.com/lilopkins/relm4-icons.git" }
+relm4-icons-build = { git = "https://github.com/lilopkins/relm4-icons.git" } # "0.10.0"
