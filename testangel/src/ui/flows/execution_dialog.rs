@@ -2,6 +2,7 @@ use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 
 use adw::prelude::*;
 use base64::{Engine, prelude::BASE64_STANDARD};
+use chrono::{DateTime, FixedOffset, Local};
 use evp::{Author, EvidencePackage};
 use relm4::{Component, ComponentParts, RelmWidgetExt, adw, gtk};
 use testangel::{
@@ -45,7 +46,9 @@ pub enum ExecutionDialogInput {
 }
 
 #[derive(Debug)]
-pub struct ExecutionDialog;
+pub struct ExecutionDialog {
+    execution_start_time: DateTime<FixedOffset>,
+}
 
 /// Create the absolute barebones of a message dialog, allowing for custom button and response mapping.
 fn create_message_dialog<S>(title: S, message: S) -> adw::MessageDialog
@@ -63,9 +66,10 @@ where
 fn add_evidence(
     mut evp: EvidencePackage,
     all_case_evidence: Vec<Vec<Evidence>>,
+    flow_start_time: DateTime<FixedOffset>,
 ) -> evp::Result<()> {
     for evidence in all_case_evidence {
-        let tc = evp.create_test_case("TestAngel Test Case")?;
+        let tc = evp.create_test_case_at("TestAngel Test Case", flow_start_time)?;
         let tc_evidence = tc.evidence_mut();
         for ev in evidence {
             let Evidence { label, content } = ev;
@@ -132,7 +136,9 @@ impl Component for ExecutionDialog {
         root: Self::Root,
         sender: relm4::ComponentSender<Self>,
     ) -> relm4::ComponentParts<Self> {
-        let model = ExecutionDialog;
+        let model = ExecutionDialog {
+            execution_start_time: Local::now().fixed_offset(),
+        };
         let widgets = view_output!();
         let flow = init.flow;
         let engine_list = init.engine_list.clone();
@@ -232,6 +238,7 @@ impl Component for ExecutionDialog {
                     .build();
 
                 let sender_c = sender.clone();
+                let execution_start_time = self.execution_start_time.clone();
                 dialog.save(
                     Some(root),
                     Some(&relm4::gtk::gio::Cancellable::new()),
@@ -264,7 +271,11 @@ impl Component for ExecutionDialog {
                                         }
                                         Ok(evp) => {
                                             // Append new TC
-                                            if let Err(e) = add_evidence(evp, evidence.clone()) {
+                                            if let Err(e) = add_evidence(
+                                                evp,
+                                                evidence.clone(),
+                                                execution_start_time,
+                                            ) {
                                                 sender_c.input(
                                                     ExecutionDialogInput::FailedToGenerateEvidence(
                                                         e,
