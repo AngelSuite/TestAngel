@@ -495,23 +495,73 @@ impl ActionConfiguration {
         }
 
         // Execute Lua script
-        // Add parameters and get results
+        // Add parameters via type coercion and get results
         let mut params = vec![];
-        for param in action_parameters {
-            match param {
-                ParameterValue::Boolean(b) => params.push(mlua::Value::Boolean(b)),
-                ParameterValue::String(s) => params.push(mlua::Value::String(
-                    lua_env.create_string(s).map_err(|e| {
-                        (
-                            FlowError::Lua(e.to_string()),
+        for (idx, param) in action_parameters.iter().enumerate() {
+            let (_, expected_type) = action.parameters()[idx];
+            match expected_type {
+                ParameterKind::Boolean => match param {
+                    ParameterValue::Boolean(b) => params.push(mlua::Value::Boolean(*b)),
+                    _ => {
+                        return Err((
+                            FlowError::InstructionCalledWithInvalidParamType,
                             lua_env.app_data_ref::<Vec<Evidence>>().unwrap().clone(),
-                        )
-                    })?,
-                )),
-                ParameterValue::Integer(i) => {
-                    params.push(mlua::Value::Integer(i.into()));
-                }
-                ParameterValue::Decimal(n) => params.push(mlua::Value::Number(n)),
+                        ));
+                    }
+                },
+                ParameterKind::Decimal => match param {
+                    ParameterValue::Decimal(d) => params.push(mlua::Value::Number(*d)),
+                    ParameterValue::Integer(i) => params.push(mlua::Value::Number((*i).into())),
+                    _ => {
+                        return Err((
+                            FlowError::InstructionCalledWithInvalidParamType,
+                            lua_env.app_data_ref::<Vec<Evidence>>().unwrap().clone(),
+                        ));
+                    }
+                },
+                ParameterKind::Integer => match param {
+                    ParameterValue::Integer(i) => params.push(mlua::Value::Integer((*i).into())),
+                    _ => {
+                        return Err((
+                            FlowError::InstructionCalledWithInvalidParamType,
+                            lua_env.app_data_ref::<Vec<Evidence>>().unwrap().clone(),
+                        ));
+                    }
+                },
+                ParameterKind::String => match param {
+                    ParameterValue::Boolean(b) => params.push(mlua::Value::String(
+                        lua_env.create_string(format!("{b:?}")).map_err(|e| {
+                            (
+                                FlowError::Lua(e.to_string()),
+                                lua_env.app_data_ref::<Vec<Evidence>>().unwrap().clone(),
+                            )
+                        })?,
+                    )),
+                    ParameterValue::String(s) => params.push(mlua::Value::String(
+                        lua_env.create_string(s).map_err(|e| {
+                            (
+                                FlowError::Lua(e.to_string()),
+                                lua_env.app_data_ref::<Vec<Evidence>>().unwrap().clone(),
+                            )
+                        })?,
+                    )),
+                    ParameterValue::Integer(i) => params.push(mlua::Value::String(
+                        lua_env.create_string(format!("{i}")).map_err(|e| {
+                            (
+                                FlowError::Lua(e.to_string()),
+                                lua_env.app_data_ref::<Vec<Evidence>>().unwrap().clone(),
+                            )
+                        })?,
+                    )),
+                    ParameterValue::Decimal(n) => params.push(mlua::Value::String(
+                        lua_env.create_string(format!("{n}")).map_err(|e| {
+                            (
+                                FlowError::Lua(e.to_string()),
+                                lua_env.app_data_ref::<Vec<Evidence>>().unwrap().clone(),
+                            )
+                        })?,
+                    )),
+                },
             }
         }
 
